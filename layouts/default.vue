@@ -5,16 +5,20 @@
               class="bg-blue-600 text-white h-[40px] flex items-center"
           >
               <nav>
-                  <n-button
-                      quaternary
-                      size="large"
-                      @click="collapsed = !collapsed"
-                  >
-                      <template #icon>
-                          <n-icon><MenuSharp /></n-icon>
-                      </template>
-                  </n-button>
-                  <NuxtLink to="/about">소개</NuxtLink>
+                    <div class="flex items-center gap-3">
+                        <n-button
+                            quaternary
+                            size="large"
+                            class="mr-3"
+                            @click="collapsed = !collapsed"
+                        >
+                            <template #icon>
+                                <n-icon><MenuSharp /></n-icon>
+                            </template>
+                        </n-button>
+                        <!-- <NuxtLink to="/about">소개</NuxtLink> -->
+                        <img :src="logo" alt="AIW Logo" class="h-[30px] ml-3"/>
+                    </div>
               </nav>
           </n-layout-header>
           <n-layout
@@ -61,6 +65,7 @@ import { MenuSharp} from '@vicons/ionicons5';
 import { NIcon } from 'naive-ui';
 import { defineComponent, h, ref } from 'vue';
 import { useRouter } from "vue-router";
+import logo from '@/assets/images/aiw_logo_clean.svg'
 
 const router = useRouter(); 
 
