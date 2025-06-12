@@ -1,11 +1,13 @@
 ### 초기 환경
 
-1. git 주소
+```bash
+# git 주소
     - https://github.com/honghoon/aiaws.git
-2. ssl git 처리
+# ssl git 처리
     - git config --global http.sslVerify false
-3. NPM ssl 인증서 우회
+# NPM ssl 인증서 우회
     - npm config set strict-ssl false
+```
 
 # Nuxt Minimal Starter
 
