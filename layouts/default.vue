@@ -103,7 +103,7 @@ const menuOptions = [
       label: '프로젝트',
       key: 'hear-the-wind-sing1',
       icon: 'NewspaperOutline',
-      to: '/task',
+      to: '/KanbanBoard',
   },
 ];
 
@@ -147,3 +147,9 @@ onMounted(async () => {
   await transMenuoption();
 });
 </script>
+
+<style>
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+</style>
