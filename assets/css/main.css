@@ -1,0 +1,38 @@
+
+@import url("./font/stylesheet.css");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 기본 스타일 적용 */
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500 !important;
+    -webkit-font-smoothing: antialiased; /* 크롬, 사파리 */
+    -moz-osx-font-smoothing: grayscale; /* 파이어폭스 */
+    text-rendering: optimizeLegibility; /* 가독성 향상 */
+    letter-spacing: -0.35px !important;
+  }
+::-webkit-scrollbar {
+    width: 4px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #dddedf;
+    /* Tailwind gray-400 */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #ffffff;
+    /* Tailwind gray-200 */
+}
+
+@layer theme {
+    :root,
+    :host {
+        --font-sans: 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
+    }
+}

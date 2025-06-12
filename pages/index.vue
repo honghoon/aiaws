@@ -6,6 +6,11 @@
 </template>
 
 <script setup lang="ts">
+
+  // definePageMeta({
+  //     layout: "default", // 기본 레이아웃 적용
+  // });
+
 const router = useRouter()
 const navigate = () => {
   router.push('/about')
