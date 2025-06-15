@@ -16,7 +16,6 @@
                                 <n-icon><MenuSharp /></n-icon>
                             </template>
                         </n-button>
-                        <!-- <NuxtLink to="/about">소개</NuxtLink> -->
                         <img :src="logo" alt="AIW Logo" class="h-[30px] ml-3"/>
                     </div>
               </nav>
@@ -49,13 +48,13 @@
                   </n-layout>
               </n-layout>
           </n-layout>
-          <n-layout-footer
+          <!-- <n-layout-footer
               bordered
               position="absolute"
               class="bg-gray-800 text-white p-4 text-center h-[10px] flex items-center"
           >
               ⓒ 2024 My Nuxt App
-          </n-layout-footer>
+          </n-layout-footer> -->
       </n-layout>
   </div>
 </template>
@@ -100,11 +99,17 @@ const menuOptions = [
       to: '/weeklyReport',
   },
   {
-      label: '프로젝트',
-      key: 'hear-the-wind-sing1',
+      label: 'IT',
+      key: 'KanbanBoard',
       icon: 'NewspaperOutline',
       to: '/KanbanBoard',
   },
+  {
+      label: 'ERP',
+      key: 'about',
+      icon: 'NewspaperOutline',
+      to: '/about',
+  }
 ];
 
 const transMenuoption = async () => {
