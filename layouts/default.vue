@@ -99,7 +99,7 @@ const menuOptions = [
       to: '/weeklyReport',
   },
   {
-      label: 'IT',
+      label: '할일',
       key: 'KanbanBoard',
       icon: 'NewspaperOutline',
       to: '/KanbanBoard',
