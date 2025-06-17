@@ -1,10 +1,19 @@
 <template>
   <div class="relative">
     <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6">
-      <div class="flex pb-3 justify-end">
+      <div class="flex pb-3 justify-end gap-3">
         <n-button strong secondary round type="primary">
           AI 주간보고 생성하기
         </n-button>
+
+        <n-button strong secondary round type="tertiary">
+          임시저장
+        </n-button>
+
+        <n-button strong secondary round type="info">
+          주간보고
+        </n-button>
+
       </div>
       <div :class="`min-h-[calc(100vh-280px)] flex gap-3`">
         <!-- 전주 -->
