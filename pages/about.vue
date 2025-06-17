@@ -1,11 +1,16 @@
 <template>
   <div class="relative">
     <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6">
-      <div :class="`min-h-[calc(100vh-250px)] flex gap-3`">
+      <div class="flex pb-3 justify-end">
+        <n-button strong secondary round type="primary">
+          AI 주간보고 생성하기
+        </n-button>
+      </div>
+      <div :class="`min-h-[calc(100vh-280px)] flex gap-3`">
         <!-- 전주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
           <h2 class="text-sm font-semibold mb-2">전주 주간보고</h2>
-          <editor-content :editor="editorLast" class="h-[calc(100vh-320px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
+          <editor-content  v-if="editorLast" :editor="editorLast" class="h-[calc(100vh-320px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
         </div>
 
         <!-- 금주 -->
