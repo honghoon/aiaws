@@ -96,7 +96,7 @@ const menuOptions = [
       label: '주간보고',
       key: 'hear-the-wind-sing',
       icon: 'LayersOutline',
-      to: '/weeklyReport',
+      to: '/about',
   },
   {
       label: '할일',
