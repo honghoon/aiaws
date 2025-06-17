@@ -101,7 +101,7 @@ const menuOptions = [
   {
       label: '할일',
       key: 'KanbanBoard',
-      icon: 'NewspaperOutline',
+      icon: 'CalendarNumberOutline', 
       to: '/KanbanBoard',
   },
   {
