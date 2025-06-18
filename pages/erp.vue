@@ -4,7 +4,7 @@
       
       <div class="min-h-[calc(100vh-230px)] h-[calc(100vh-230px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3">
         <div class="bg-white flex-1 flex flex-col rounded-md w-full h-full overflow-y-auto overflow-x-hidden">
-          <div class="p-4 space-y-4 w-full whitespace-pre-line break-words">
+          <div ref="resultBox" class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto">
             {{ aiResult }}
           </div>
         </div>
@@ -26,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
 // Ionicons
 import { IonIcon } from '@ionic/vue'
@@ -36,14 +36,21 @@ import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, lin
 const textareaMaxHeight = 100;
 const aiText = ref("")
 const aiResult = ref('')
+const resultBox = ref(null)
+
+// aiResult가 변경될 때마다 스크롤을 하단으로 이동
+watch(aiResult, async () => {
+  await nextTick()
+  if (resultBox.value) {
+    resultBox.value.scrollTop = resultBox.value.scrollHeight
+  }
+})
 
 async function submitAI() {
 
   const res = await fetch('/api/test');
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
-
-  aiResult.value = ''
 
   while (true) {
     const { done, value } = await reader.read();
