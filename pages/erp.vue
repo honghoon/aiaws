@@ -76,22 +76,33 @@ const aiText = ref("")
 const aiResult = ref('')
 
 async function submitAI() {
-  aiResult.value = ''
-  const res = await fetch('/api/bedrock-stream', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: '여기에 프롬프트 입력' }),
-  })
 
-  if (!res.body) return
-
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
+  const res = await fetch('/api/test');
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
 
   while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    aiResult.value += decoder.decode(value)
+    const { done, value } = await reader.read();
+    if (done) break;
+    console.log(decoder.decode(value));
   }
+
+  // aiResult.value = ''
+  // const res = await fetch('/api/bedrock-stream', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify({ prompt: '여기에 프롬프트 입력' }),
+  // })
+
+  // if (!res.body) return
+
+  // const reader = res.body.getReader()
+  // const decoder = new TextDecoder()
+
+  // while (true) {
+  //   const { done, value } = await reader.read()
+  //   if (done) break
+  //   aiResult.value += decoder.decode(value)
+  // }
 }
 </script>
