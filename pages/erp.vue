@@ -4,46 +4,8 @@
       
       <div class="min-h-[calc(100vh-230px)] h-[calc(100vh-230px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3">
         <div class="bg-white flex-1 flex flex-col rounded-md w-full h-full overflow-y-auto overflow-x-hidden">
-          <div class="p-4 space-y-4">
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
-            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
+          <div class="p-4 space-y-4 w-full whitespace-pre-line break-words">
+            {{ aiResult }}
           </div>
         </div>
       </div>
@@ -81,10 +43,14 @@ async function submitAI() {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
 
+  aiResult.value = ''
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     console.log(decoder.decode(value));
+
+    aiResult.value += decoder.decode(value);
   }
 
   // aiResult.value = ''
