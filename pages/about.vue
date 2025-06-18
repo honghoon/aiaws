@@ -12,37 +12,10 @@
           주간보고
         </n-button>
       </div>
-      <div :class="`min-h-[calc(100vh-280px)] flex gap-3`">
+      <div class="min-h-[calc(100vh-280px)] flex gap-3">
         <!-- 전주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
           <h2 class="text-sm font-semibold mb-2">전주 주간보고</h2>
-          <div class="sticky top-0 z-10 flex gap-2 bg-white py-2 px-4 border-b border-gray-200">
-            <!-- 굵게: textOutline -->
-            <n-button quaternary size="small" @click="editorLast.chain().focus().toggleBold().run()">
-              <IonIcon :icon="textOutline" class="text-xl" />
-            </n-button>
-            <!-- 기울임: ellipsisHorizontalOutline(대체) -->
-            <n-button quaternary size="small" @click="editorLast.chain().focus().toggleItalic().run()">
-              <IonIcon :icon="ellipsisHorizontalOutline" class="text-xl" />
-            </n-button>
-            <!-- 밑줄: removeOutline(대체) -->
-            <n-button quaternary size="small" @click="editorLast.chain().focus().toggleUnderline().run()">
-              <IonIcon :icon="removeOutline" class="text-xl" />
-            </n-button>
-            <!-- 리스트: listOutline -->
-            <n-button quaternary size="small" @click="editorLast.chain().focus().toggleBulletList().run()">
-              <IonIcon :icon="listOutline" class="text-xl" />
-            </n-button>
-            <!-- 링크: linkOutline -->
-            <n-button quaternary size="small" @click="
-              (() => {
-                const url = prompt('링크 주소를 입력하세요:')
-                if (url) editorLast.chain().focus().setLink({ href: url }).run()
-              })()
-              ">
-              <IonIcon :icon="linkOutline" class="text-xl" />
-            </n-button>
-          </div>
           <editor-content v-if="editorLast" :editor="editorLast"
             class="h-[calc(100vh-320px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
         </div>
@@ -77,7 +50,7 @@
             </n-button>
           </div>
           <editor-content :editor="editorThis"
-            class="h-[calc(100vh-320px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
+            class="h-[calc(100vh-350px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
         </div>
         <!-- 차주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
@@ -110,7 +83,7 @@
             </n-button>
           </div>
           <editor-content :editor="editorNext"
-            class="h-[calc(100vh-320px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
+            class="h-[calc(100vh-350px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
         </div>
       </div>
       <textarea v-model="aiText" rows="4"
@@ -164,6 +137,7 @@ const extensions = [
 const editorLast = new Editor({
   extensions,
   content: '<p>전주 업무 내용을 작성하세요...</p>',
+  editable: false, // 읽기 전용
 })
 const editorThis = new Editor({
   extensions,
