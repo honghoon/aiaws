@@ -108,7 +108,7 @@ const menuOptions = [
       label: 'ERP',
       key: 'about',
       icon: 'NewspaperOutline',
-      to: '/about',
+      to: '/erp',
   }
 ];
 
