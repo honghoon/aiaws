@@ -10,7 +10,9 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.830.0",
     "@ionic/vue": "^8.6.1",
+    "@langchain/community": "^0.3.46",
     "@tailwindcss/vite": "^4.1.10",
     "@tiptap/extension-color": "^2.14.0",
     "@tiptap/extension-highlight": "^2.14.0",
@@ -24,6 +26,7 @@
     "@tiptap/vue-3": "^2.14.0",
     "@vicons/ionicons5": "^0.13.0",
     "ionicons": "^8.0.9",
+    "langchain": "^0.3.28",
     "naive-ui": "^2.41.1",
     "nuxt": "^3.17.5",
     "nuxtjs-naive-ui": "^1.0.2",

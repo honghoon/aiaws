@@ -39,6 +39,11 @@
             <p>여기에 스크롤되는 내용이 들어갑니다.</p>
             <p>여기에 스크롤되는 내용이 들어갑니다.</p>
             <p>여기에 스크롤되는 내용이 들어갑니다.</p>
+            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
+            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
+            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
+            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
+            <p>여기에 스크롤되는 내용이 들어갑니다.</p>
           </div>
         </div>
       </div>
@@ -68,4 +73,25 @@ import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, lin
 
 const textareaMaxHeight = 100;
 const aiText = ref("")
+const aiResult = ref('')
+
+async function submitAI() {
+  aiResult.value = ''
+  const res = await fetch('/api/bedrock-stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: '여기에 프롬프트 입력' }),
+  })
+
+  if (!res.body) return
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    aiResult.value += decoder.decode(value)
+  }
+}
 </script>
