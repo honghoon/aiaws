@@ -112,7 +112,6 @@ const textareaMaxHeight = 100;
 const aiText = ref("")
 const aiResult = ref([])
 const resultBox = ref(null)
-
 const loading = ref(false)
 
 // aiResult가 변경될 때마다 스크롤을 하단으로 이동
