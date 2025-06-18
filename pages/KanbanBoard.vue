@@ -1,12 +1,23 @@
 <template>
     <div class="relative">
         <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6">
+            <div class="flex pb-3 justify-end gap-3">
+                <n-button strong secondary round type="primary">
+                데이터 불러오기
+                </n-button>
+                <n-button strong secondary round type="tertiary">
+                등록
+                </n-button>
+                <n-button strong secondary round type="info">
+                조회
+                </n-button>
+            </div>
             <div class="flex gap-4">
                 <div v-for="column in columns" :key="column"
-                    class="flex-1 bg-slate-100/50 text-md p-4 flex flex-col rounded-md" @dragover.prevent
+                    class="flex-1 bg-slate-100/50 text-md p-4 flex flex-col rounded-md h-[calc(100vh-160px)]" @dragover.prevent
                     @drop="onDrop($event, column)">
                     <h2 class="font-bold mb-4 text-slate-600">{{ column }}</h2>
-                    <div class="flex-1 space-y-2">
+                    <div class="flex-1 space-y-2 overflow-y-auto">
                         <div v-for="card in cards.filter((c) => c.status === column)" :key="card.id"
                             class="p-3 bg-white shadow rounded-md cursor-move text-md flex flex-col gap-2"
                             draggable="true" @dragstart="onDragStart($event, card.id)">
@@ -132,6 +143,46 @@ const cards = ref([
         date: "2025-07-01",
         procName: "홍훈",
     },
+    {
+        id: 3,
+        type: "업무협의",
+        title: "테스트 작성",
+        status: "대기 업무",
+        date: "2025-07-01",
+        procName: "홍훈",
+    },
+    {
+        id: 3,
+        type: "업무협의",
+        title: "테스트 작성",
+        status: "대기 업무",
+        date: "2025-07-01",
+        procName: "홍훈",
+    },
+    {
+        id: 3,
+        type: "업무협의",
+        title: "테스트 작성",
+        status: "대기 업무",
+        date: "2025-07-01",
+        procName: "홍훈",
+    },
+    {
+        id: 3,
+        type: "업무협의",
+        title: "테스트 작성",
+        status: "대기 업무",
+        date: "2025-07-01",
+        procName: "홍훈",
+    },
+    {
+        id: 3,
+        type: "업무협의",
+        title: "테스트 작성",
+        status: "대기 업무",
+        date: "2025-07-01",
+        procName: "홍훈",
+    }
 ]);
 
 const getTypeColor = (_type) => {

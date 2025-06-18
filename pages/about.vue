@@ -5,6 +5,11 @@
         <n-button strong secondary round type="primary">
           AI 주간보고 생성하기
         </n-button>
+        
+        <n-button strong secondary round type="primary">
+          AI 주간보고 취합하기
+        </n-button>
+
         <n-button strong secondary round type="tertiary">
           임시저장
         </n-button>
