@@ -13,7 +13,7 @@
               </div>
               
               <div class="flex-1 min-w-full" v-else>
-                <CharTest class="w-full"/>
+                <CharTest class="max-w-[1000px] max-h-[300px]"/>
                 <p v-if="item.contentType === 'text'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p>
                 
                 <div v-else-if="item.contentType === 'table'">
