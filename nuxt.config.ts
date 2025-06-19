@@ -9,6 +9,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    MONGODB_URI: process.env.MONGODB_URI, // 서버 전용
+  },
   ssr: false,
   vite: {
     plugins: [
