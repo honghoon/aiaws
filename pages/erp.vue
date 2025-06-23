@@ -204,6 +204,16 @@ async function submitAI() {
 
   loading.value = true;
 
+  const system = "당신은 친절한 고객상담 챗봇입니다.";
+  const user = "교환은 어떻게 하나요?";
+  const history = [
+    { q: "반품이 가능한가요?", a: "네, 상품 수령 후 7일 이내 가능합니다." },
+  ];
+
+  let res = await useBedrock({ system, user, history });
+
+  console.log("response", res)
+
   /** 몽고 디비 테스트 */
   // const res1 = await fetch('/api/testMongo');
   // console.log("mongo", res1)
@@ -282,5 +292,20 @@ async function submitAI() {
   //   if (done) break
   //   aiResult.value += decoder.decode(value)
   // }
+
+    
 }
+
+const useBedrock = async ({ system, user, history = [] }) => {
+  const res = await fetch("/api/bedrock-stream", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ system, user, history }),
+  });
+  console.log("useBedrock", res);
+  return res;
+};
+
 </script>

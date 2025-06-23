@@ -1,49 +1,44 @@
-import { BedrockRuntimeClient, InvokeModelWithResponseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const prompt = body?.prompt || "";
 
-  console.log("Received prompt:", prompt);
-  
+  console.log("### Received request to /api/bedrock-stream");
+
+  const body = await readBody(event);
+
   const client = new BedrockRuntimeClient({
-    region: "ap-northeast-2",
+    region: "us-east-1", // 변경 가능
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      accessKeyId: process.env.key,
+      secretAccessKey: process.env.s_key,
     },
   });
 
-  const command = new InvokeModelWithResponseStreamCommand({
-    modelId: "anthropic.claude-v2",
+  const messages = [
+    { role: "system", content: body.system },
+    ...body.history.flatMap(h => [
+      { role: "user", content: h.q },
+      { role: "assistant", content: h.a }
+    ]),
+    { role: "user", content: body.user },
+  ];
+
+  const input = {
+    modelId: "anthropic.claude-3-sonnet-20240229-v1:0", // 모델 변경 가능
     contentType: "application/json",
     accept: "application/json",
     body: JSON.stringify({
-      prompt: prompt,
-      max_tokens_to_sample: 1024,
+      messages,
       temperature: 0.7,
+      top_p: 0.9,
+      max_tokens: 1024,
     }),
-  });
+  };
 
-  setResponseHeader(event, "Content-Type", "text/event-stream");
-  setResponseHeader(event, "Cache-Control", "no-cache");
-  setResponseHeader(event, "Connection", "keep-alive");
-
+  const command = new InvokeModelCommand(input);
   const response = await client.send(command);
 
-  if (!response.body) {
-    event.node.res.end();
-    return;
-  }
+  const json = JSON.parse(Buffer.from(response.body).toString("utf-8"));
 
-  const reader = response.body.getReader();
-  const encoder = new TextEncoder();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    event.node.res.write(encoder.encode(`data: ${value ? Buffer.from(value).toString("utf-8") : ""}\n\n`));
-  }
-
-  event.node.res.end();
+  return json;
 });
