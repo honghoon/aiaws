@@ -205,14 +205,14 @@ async function submitAI() {
   loading.value = true;
 
   /** 몽고 디비 테스트 */
-  // const res1 = await fetch('/api/testMongo');
-  // console.log("mongo", res1)
-  // if (!res1.ok) {
-  //   throw new Error('서버 응답 오류: ' + res1.status)
-  // }
-  // const json = await res1.json()
+  const res1 = await fetch('/api/testMongo');
+  console.log("mongo", res1)
+  if (!res1.ok) {
+    throw new Error('서버 응답 오류: ' + res1.status)
+  }
+  const json = await res1.json()
 
-  // console.log("mongo", json)
+  console.log("mongo", json)
 
   try{
 
@@ -282,5 +282,35 @@ async function submitAI() {
   //   if (done) break
   //   aiResult.value += decoder.decode(value)
   // }
+
+  const user = "교환은 어떻게 하나요?";
+  const history = [
+    { q: "반품이 가능한가요?", a: "네, 상품 수령 후 7일 이내 가능합니다." },
+  ];
+
+  // Claude 메시지 포맷 생성
+  const messages = history.flatMap((h) => [
+    { role: "user", content: h.q },
+    { role: "assistant", content: h.a },
+  ]);
+
+  // 마지막 질문 추가
+  messages.push({ role: "user", content: user });
+
+  // Claude 호출
+  let res = await useBedrock({ messages });
+
 }
+
+const useBedrock = async ({ messages }) => {
+  const res = await fetch("/api/bedrock-stream", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ messages }),
+  });
+
+  return res;
+};
 </script>

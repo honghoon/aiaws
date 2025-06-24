@@ -6,7 +6,10 @@ let client: MongoClient | null = null
 
 export async function getMongoClient(): Promise<MongoClient> {
   if (!client) {
-    client = new MongoClient(uri)
+    client = new MongoClient(uri, {
+  tls: true,
+  tlsAllowInvalidCertificates: true, // ✅ 핵심 옵션
+})
     await client.connect()
   }
   return client

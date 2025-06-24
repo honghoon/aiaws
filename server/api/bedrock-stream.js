@@ -1,49 +1,38 @@
-import { BedrockRuntimeClient, InvokeModelWithResponseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
+// /server/api/bedrock-stream.ts
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { readBody } from "h3";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const prompt = body?.prompt || "";
+  const { messages } = await readBody(event);
 
-  console.log("Received prompt:", prompt);
-  
   const client = new BedrockRuntimeClient({
-    region: "ap-northeast-2",
+    region: "us-east-1",
     credentials: {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     },
   });
 
-  const command = new InvokeModelWithResponseStreamCommand({
-    modelId: "anthropic.claude-v2",
+  const input = {
+    modelId: "anthropic.claude-3-sonnet-20240229-v1:0", // Claude 3.5 모델 예시
     contentType: "application/json",
     accept: "application/json",
     body: JSON.stringify({
-      prompt: prompt,
-      max_tokens_to_sample: 1024,
+      anthropic_version: "bedrock-2023-05-31",
+      messages,
+      max_tokens: 1024,
       temperature: 0.7,
     }),
-  });
+  };
 
-  setResponseHeader(event, "Content-Type", "text/event-stream");
-  setResponseHeader(event, "Cache-Control", "no-cache");
-  setResponseHeader(event, "Connection", "keep-alive");
+  try {
+    const command = new InvokeModelCommand(input);
+    const response = await client.send(command);
 
-  const response = await client.send(command);
-
-  if (!response.body) {
-    event.node.res.end();
-    return;
+    const json = JSON.parse(Buffer.from(response.body).toString("utf-8"));
+    return json;
+  } catch (e) {
+    console.error("Claude 호출 오류:", e);
+    throw createError({ statusCode: 500, statusMessage: "Claude 호출 실패", data: e });
   }
-
-  const reader = response.body.getReader();
-  const encoder = new TextEncoder();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    event.node.res.write(encoder.encode(`data: ${value ? Buffer.from(value).toString("utf-8") : ""}\n\n`));
-  }
-
-  event.node.res.end();
 });
