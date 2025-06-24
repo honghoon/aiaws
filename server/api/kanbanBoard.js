@@ -10,8 +10,8 @@ export default defineEventHandler(async (event) => {
   const client = new BedrockRuntimeClient({
     region: "us-east-1",
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      key: process.env.AWS_ACCESS_KEY_ID,
+      s_key: process.env.AWS_SECRET_ACCESS_KEY,
     },
   });
 
