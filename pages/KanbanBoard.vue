@@ -674,7 +674,7 @@ async function submitAI() {
         📌 응답 형식:
         "[statusName] type - title 
           - 기간: startDate ~ endDate
-          - 진행률: progress%"
+          - 진행률: progress%"</br>
         <jsonData>
           {
             "answers": [
@@ -716,7 +716,7 @@ async function submitAI() {
         📌 예시 응답:
         "[진행중] 기능개발 - 로그인 시스템 
          - 기간: 2025-01-01 ~ 2025-01-15
-         - 진행률: 75%"
+         - 진행률: 75%" </br>
         <jsonData>
           {
             "answers": [
