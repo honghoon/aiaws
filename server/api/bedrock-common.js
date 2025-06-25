@@ -1,34 +1,18 @@
 import { BedrockRuntimeClient, InvokeModelWithResponseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
-import { Card } from "@vicons/ionicons5";
+import { work } from "@vicons/ionicons5";
 import { readBody } from "h3";
 
 export default defineEventHandler(async (event) => {
   console.log("### Received request to /api/bedrock-stream");
   
-  const body = await readBody(event);
-  
+  const prompt = await readBody(event);
   const client = new BedrockRuntimeClient({
     region: "us-east-1",
     credentials: {
-      accessKeyId: process.env.key,
-      secretAccessKey: process.env.s_key,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     },
   });
-
-  // 카드 요약 텍스트로 변환 (HTML 제거 포함)
-  const cardsSummary = body.cards
-    .map((card, idx) => {
-      const textContent = card.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-      return `${idx + 1}. [${card.statusName}] ${card.type} - ${card.title} (기간: ${card.startDate} ~ ${card.endDate})\n${textContent} 진행률: ${card.progress}% ) 키: ${card.id}`;
-    })
-    .join("\n\n");
-
-  const prompt = [
-    {
-      role: "user",
-      content: `${body.system}\n\n업무 카드 목록:\n${cardsSummary}\n\n사용자 질문:\n${body.user}`
-    }
-  ];
 
   const input = {
     modelId: "anthropic.claude-3-sonnet-20240229-v1:0",
@@ -38,7 +22,7 @@ export default defineEventHandler(async (event) => {
       messages: prompt,
       temperature: 0.7,
       top_p: 0.9,
-      max_tokens: 1024,
+      max_tokens: 20000,
       anthropic_version: "bedrock-2023-05-31",
     }),
   };

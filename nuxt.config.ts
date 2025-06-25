@@ -12,6 +12,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     MONGODB_URI: process.env.MONGODB_URI, // 서버 전용
   },
+  modules: [
+    '@pinia/nuxt'  // ✅ Pinia 모듈 등록
+  ],  
   ssr: false,
   vite: {
     plugins: [

@@ -26,7 +26,7 @@
             secondary
             round
             type="tertiary"
-            @click="registerCard"
+            @click="registerwork"
           >
             등록
           </n-button>
@@ -45,40 +45,40 @@
           <h2 class="font-bold mb-4 text-slate-600">{{ column.name }}</h2>
           <div class="flex-1 space-y-2 overflow-y-auto">
             <div
-              v-for="card in cards.filter((c) => c.status === column.value)"
-              :key="card.id"
+              v-for="work in works.filter((c) => c.status === column.value)"
+              :key="work.id"
               class="p-3 bg-white shadow rounded-md cursor-move text-md flex flex-col gap-2"
               draggable="true"
-              @dragstart="onDragStart($event, card.id)"
+              @dragstart="onDragStart($event, work.id)"
             >
               <p
                 class="line-clamp-2 text-slate-600 break-words text-sm font-normal"
               >
-                {{ card.title }}
+                {{ work.title }}
               </p>
 
               <div class="flex items-center justify-between pt-3 pb-3">
                 <p class="text-sm font-normal text-slate-400">
-                  기간: {{ card.startDate }} ~ {{ card.endDate }} {{ card.procName ? card.procName : "" }}
+                  기간: {{ work.startDate }} ~ {{ work.endDate }} {{ work.procName ? work.procName : "" }}
                 </p>
                 <div class="flex gap-2 items-center">
                   <div
                     class="px-3 h-6 rounded-full text-xs font-semibold flex items-center"
-                    :class="getBadgeClasses(card.type).badge"
+                    :class="getBadgeClasses(work.type).badge"
                   >
-                    <!-- <span class="w-2 h-2 rounded-full mr-1" :class="`bg-${getTypeColor(card.type)}-400 flex-shrink-0`"></span> -->
+                    <!-- <span class="w-2 h-2 rounded-full mr-1" :class="`bg-${getTypeColor(work.type)}-400 flex-shrink-0`"></span> -->
                     <span
                       class="w-2 h-2 rounded-full mr-1 flex-shrink-0"
-                      :class="getBadgeClasses(card.type).dot"
+                      :class="getBadgeClasses(work.type).dot"
                     ></span>
                     <span>
-                      {{ card.type }}
+                      {{ work.type }}
                     </span>
                     <n-icon
                       class="ml-2 cursor-pointer"
                       @click="
                         () => {
-                          openSelectItem(card);
+                          openSelectItem(work);
                         }
                       "
                       ><OpenOutline
@@ -89,9 +89,9 @@
               <n-progress
                 type="line"
                 indicator-placement="inside"
-                :color="resolveColor(card.color)"
-                :rail-color="changeColor(resolveColor(card.color), { alpha: 0.2 })"
-                :percentage="card.progress"
+                :color="resolveColor(work.color)"
+                :rail-color="changeColor(resolveColor(work.color), { alpha: 0.2 })"
+                :percentage="work.progress"
               />
             </div>
           </div>
@@ -161,7 +161,7 @@
                             </div>
 
                             <div class="mt-3 text-right">
-                              <n-button size="small" ghost type="primary" @click="openAnsSelectItem(ans.card.id)">
+                              <n-button size="small" ghost type="primary" @click="openAnsSelectItem(ans.work.id)">
                                 상세보기
                               </n-button>
                             </div>
@@ -487,6 +487,10 @@ import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
+import { useWorkStore } from '~/stores/work';
+
+const workStore = useWorkStore()
+const works = workStore.works
 
 // Ionicons
 import { IonIcon } from "@ionic/vue";
@@ -590,12 +594,49 @@ function autoResize(e) {
 }
 
 const openAnsSelectItem = (id) => {
-  cards.value.forEach((card) => {
-    if (card.id === id) {
-      openSelectItem(card);
+  works.forEach((work) => {
+    if (work.id === id) {
+      openSelectItem(work);
     }
   });
 };
+
+let progressState = 0;
+let progressInterval = null;
+
+// 다양한 프로그레스 표현 방식
+const progressTypes = {
+  spinner: () => {
+    const spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    return `\n\n${spinners[progressState % spinners.length]} 데이터 분석 중...`;
+  },
+};
+const selectedProgressType = 'spinner';
+
+// 함수 시작 부분에 변수들 선언
+let visibleText = '';
+let chatResult = '';
+let insideJsonBlock = false;
+
+function startProgressAnimation() {
+  progressState = 0;
+  
+  progressInterval = setInterval(() => {
+    progressState++;
+    const progressText = progressTypes[selectedProgressType]();
+    const currentContent = visibleText + progressText;
+    aiResult.value[aiResult.value.length - 1].content = currentContent;
+  }, 200); // 0.2초마다 업데이트
+}
+
+function stopProgressAnimation() {
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressInterval = null;
+    progressState = 0;
+  }
+}
+
 
 /** 제출 처리 */
 async function submitAI() {
@@ -616,33 +657,49 @@ async function submitAI() {
   });
 
   try {
-    const res = await fetch("/api/kanbanBoard", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+
+    // 업무 요약 텍스트로 변환 (HTML 제거 포함)
+    const worksSummary = works
+      .map((work, idx) => {
+        const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+      })
+      .join("\n\n");
+
+    const body = {
         system: `
         너는 프로젝트 관리 시스템에 연결된 AI야.
-        사용자의 요청에 따라 업무 카드 목록을 분석해서, 질문에 맞는 항목만 골라 아래 형식대로 JSON 형식으로 응답해줘.
+        사용자의 요청에 따라 업무 업무 목록을 분석해서, 질문에 맞는 항목만 골라 아래 형식대로 JSON 형식으로 응답해줘.
 
         📌 응답 형식:
-        {
-          "answers": [
-            {
-              "content": "[statusName] type - title \\n- 기간: startDate ~ endDate\\n- 진행률: progress%",
-              "card": { 카드 객체 그대로 }
-            },
-          ]
-        }
+        "[statusName] type - title 
+          - 기간: startDate ~ endDate
+          - 진행률: progress%"
+        <jsonData>
+          {
+            "answers": [
+              {
+                "content": "[statusName] type - title \\n- 기간: startDate ~ endDate\\n- 진행률: progress%",
+                "work": { 업무 객체 그대로 }
+              },
+            ]
+          }
+        </jsonData>
+        
+        📌출력순서
+        1. 사람이 읽을 수 있는 텍스트 목록을 먼저 출력 (content만 표시)
+        2. 그 다음 <jsonData> 태그로 감싸진 JSON 응답을 출력
 
         📌 필수 출력 규칙:
         - HTML 태그나 버튼 코드는 절대 포함하지 말 것
-        - 각 항목마다 content와 card를 쌍으로 배열에 포함할 것
-        - card는 사용자가 선택한 항목을 다시 불러오기 위해 전체 카드 객체 그대로 포함할 것
+        - 각 항목마다 content와 work를 쌍으로 배열에 포함할 것
+        - work는 사용자가 선택한 항목을 다시 불러오기 위해 전체 업무 객체 그대로 포함할 것
         - content는 사람이 읽기 쉬운 텍스트만 포함할 것
+        - 답변의 순서는 종료일이 가장 빠른 업무가 가장 먼저 나오도록 정렬할 것
 
         📌 날짜 조건 처리 방식:
         - 오늘 날짜는 반드시 "2025-06-24"로 간주할 것
-        - 사용자가 "마감일이 10일 이내" 같은 요청을 하면, endDate 기준으로 오늘과의 차이를 계산해 조건에 맞는 카드만 포함할 것
+        - 사용자가 "마감일이 10일 이내" 같은 요청을 하면, endDate 기준으로 오늘과의 차이를 계산해 조건에 맞는 업무만 포함할 것
         - 사용자가 "시작 날짜가 6월 1일 이후인 업무"라고 하면, startDate가 "2025-06-01"보다 **이후인 업무만** 포함할 것
         - 날짜 형식은 모두 "YYYY-MM-DD"로 되어 있음
         - JavaScript의 new Date("YYYY-MM-DD")를 사용해 날짜 차이를 계산한다고 가정하고 비교할 것
@@ -657,43 +714,94 @@ async function submitAI() {
         - answer는 사람이 읽을 수 있도록 포맷만 적용한 plain string이어야 함
 
         📌 예시 응답:
-        {
-          "answers": [
-            {
-              "content": "[진행중] 기능개발 - 로그인 시스템 \\n- 기간: 2025-01-01 ~ 2025-01-15\\n- 진행률: 75%",
-              "card": {
-                "id": 1,
-                "type": "개발"
+        "[진행중] 기능개발 - 로그인 시스템 
+         - 기간: 2025-01-01 ~ 2025-01-15
+         - 진행률: 75%"
+        <jsonData>
+          {
+            "answers": [
+              {
+                "content": "[진행중] 기능개발 - 로그인 시스템 \\n- 기간: 2025-01-01 ~ 2025-01-15\\n- 진행률: 75%",
+                "work": {
+                  "id": 1,
+                  "type": "개발"
+                }
               }
-            }
-          ]
-        }
+            ]
+          }
+        </jsonData>
         `,        
         history: [],
         user: aiText.value,
-        cards: cards.value,
-      }),
+        works: works.value
+    };
+
+    const prompt = [
+      {
+        role: "user",
+        content: `${body.system}\n\n업무 목록:\n${worksSummary}\n\n사용자 질문:\n${body.user}`
+      }
+    ];      
+
+    const res = await fetch("/api/bedrock-common", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(prompt)
     });
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let chatResult = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value);
-      chatResult += chunk;
+    chatResult = "";
+    visibleText = "";
+    insideJsonBlock = false;
 
-      aiResult.value[aiResult.value.length - 1].content = chatResult;
+    while (true) { 
+      const { done, value } = await reader.read(); 
+      if (done) break; 
 
-      await nextTick();
-      if (resultBox.value)
-        resultBox.value.scrollTop = resultBox.value.scrollHeight;
+      const chunk = decoder.decode(value); 
+      chatResult += chunk; 
+
+      if (!insideJsonBlock) { 
+        const jsonStartIndex = chatResult.indexOf("<jsonData>"); 
+        if (jsonStartIndex !== -1) { 
+          visibleText = chatResult.substring(0, jsonStartIndex); 
+          insideJsonBlock = true; 
+          startProgressAnimation(); // 프로그레스 시작
+        } else { 
+          visibleText = chatResult; 
+          aiResult.value[aiResult.value.length - 1].content = visibleText;
+        } 
+      } else {
+        const jsonEndIndex = chatResult.indexOf("</jsonData>"); 
+        if (jsonEndIndex !== -1) {
+          insideJsonBlock = false;
+          stopProgressAnimation(); // 프로그레스 중지
+          aiResult.value[aiResult.value.length - 1].content = visibleText;
+        }
+      }
+
+      await nextTick(); 
+      if (resultBox.value) 
+        resultBox.value.scrollTop = resultBox.value.scrollHeight; 
     }
 
-    const parsed = JSON.parse(chatResult);
-    aiResult.value[aiResult.value.length - 1].answers = parsed.answers; 
+    stopProgressAnimation();
+
+    const jsonMatch = chatResult.match(/<jsonData>\s*([\s\S]*?)\s*<\/jsonData>/);
+
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[1]);
+        aiResult.value[aiResult.value.length - 1].answers = parsed.answers; 
+      } catch (e) {
+        aiResult.value[aiResult.value.length - 1].answers = "데이터를 찾지 못했습니다.";
+      }
+    } else {
+      aiResult.value[aiResult.value.length - 1].answers = "데이터를 찾지 못했습니다.";
+    }    
+
     aiText.value = "";
   } catch (e) {
     console.error("AI 요청 중 오류 발생:", e);
@@ -703,7 +811,7 @@ async function submitAI() {
 }
 
 // 입력값 예시
-const newCard = {
+const newwork = {
   id: null,
   type: "",
   title: "",
@@ -712,20 +820,20 @@ const newCard = {
   content: "",
 };
 
-function registerCard() {
+function registerwork() {
   // 간단한 유효성 검사 및 id 생성
-  let createItem = JSON.parse(JSON.stringify(newCard));
-  createItem.id = cards.value.length + 1;
+  let createItem = JSON.parse(JSON.stringify(newwork));
+  createItem.id = works.value.length + 1;
   createItem.date = new Date().toISOString().split("T")[0]; // 현재 날짜
   createItem.status = "대기 업무"; // 기본 상태 설정
   createItem.content = ".."; // 기본 상태 설정
   createItem.procName = sessionUser.value.name; // 현재 사용자 이름으로 처리자 설정
-  cards.value.push(createItem);
+  works.value.push(createItem);
 
   showModal.value = true;
-  selectedItem.value = cards.value[cards.value.length - 1];
+  selectedItem.value = works.value[works.value.length - 1];
   updateMode.value = true; // 새로 등록할 때는 수정 모드로 전환
-  editor.commands.setContent(cards.value[cards.value.length - 1].content || "");
+  editor.commands.setContent(works.value[works.value.length - 1].content || "");
 };
 
 function resolveColor(colorKey) {
@@ -733,196 +841,13 @@ function resolveColor(colorKey) {
   return typeof color === 'string' ? color : '#cccccc'
 }
 
-// 카드 데이터
-const cards = ref([
-  {
-    id: 1,
-    type: "개발",
-    title:
-      "분석 설계 안녕하세요. 안녕하세요. 제목입니다. .. 으흐흐흐 하나 둘 셋 넷 다섯.. 여섯 . 으흐흐흐 하나 둘 셋 넷 다섯.. 여섯 . 으흐흐흐 하나 둘 셋 넷 다섯.. 여섯 ",
-    status: 1,      
-    statusName: "대기 업무",    
-    color: "infoColor",
-    progress: 0,
-    startDate: "2025-07-01",
-    endDate: "2025-07-15",
-    content: `<ul>
-      <li>분석 설계 문서를 작성하였습니다.</li>
-      <li>주요 기능에 대한 <b>요구사항</b>을 정리했습니다.</li>
-      <li><span style="color:#f43f5e;">추가 검토가 필요합니다.</span></li>
-    </ul>`,
-  },
-  {
-    id: 2,
-    type: "기획",
-    title: "신규 서비스 기획 회의",
-    status: 3,
-    statusName: "진행 중",
-    color: "infoColorSuppl",
-    progress: 20,
-    startDate: "2025-07-02",
-    endDate: "2025-07-03",
-    content: `<p>신규 서비스 런칭을 위한 <b>기획 회의</b>를 진행하였습니다.</p>
-      <p><u>참석자</u>: 홍길동, 김철수, 이영희</p>
-      <ol>
-        <li>서비스 타겟</li>
-        <li>일정</li>
-        <li>예산</li>
-      </ol>`,
-  },
-  {
-    id: 3,
-    type: "테스트",
-    title: "기능 테스트 및 버그 리포트",
-    status: 4,
-    statusName: "완료",    
-    color: "successColor",
-    progress: 100,
-    startDate: "2025-07-03",
-    endDate: "2025-08-03",
-    content: `<p>주요 기능에 대한 <b>테스트</b>를 완료하였고, 발견된 버그는 <span style="color:#3b82f6;">이슈 트래커</span>에 등록하였습니다.</p>
-      <p>총 <b>3건</b>의 버그가 발견되었습니다.</p>`,
-  },
-  {
-    id: 4,
-    type: "운영",
-    title: "서버 점검 및 유지보수",
-    status: 1,
-    statusName: "대기 업무",
-    color: "infoColor",
-    progress: 0,
-    startDate: "2025-07-04",
-    endDate: "2025-09-04",
-    content: `<ul>
-      <li>정기 서버 점검을 위해 <b>시스템 백업</b>을 진행하였습니다.</li>
-      <li>점검 결과 <span style="color:#22c55e;">이상 없음</span>.</li>
-    </ul>`,
-  },
-  {
-    id: 5,
-    type: "개발",
-    title: "API 연동 개발",
-    status: 3,
-    statusName: "진행 중",    
-    color: "infoColorSuppl",
-    progress: 70,
-    startDate: "2025-07-05",
-    endDate: "2025-09-05",
-    content: `<p>외부 시스템과의 <b>API 연동 개발</b>을 시작하였습니다.</p>
-      <p>현재 <u>인증 방식</u> 협의 중입니다.</p>`,
-  },
-  {
-    id: 6,
-    type: "기획",
-    title: "UI/UX 개선안 작성",
-    status: 4,
-    statusName: "완료",    
-    color: "successColor",
-    progress: 100,
-    startDate: "2025-07-06",
-    endDate: "2025-07-10",
-    content: `<p>사용자 피드백을 반영하여 <b>UI/UX 개선안</b>을 작성하였습니다.</p>
-      <p>디자인팀과 <span style="color:#a21caf;">공유 예정</span>.</p>`,
-  },
-  {
-    id: 7,
-    type: "테스트",
-    title: "성능 테스트",
-    status: 3,
-    statusName: "진행 중",    
-    color: "infoColorSuppl",
-    progress: 80,
-    startDate: "2025-07-07",
-    endDate: "2025-07-07",
-    content: `<p>시스템 <b>부하 테스트</b>를 진행 중입니다.</p>
-      <p>초기 결과는 <span style="color:#22d3ee;">양호</span>하나 추가 테스트 필요.</p>`,
-  },
-  {
-    id: 8,
-    type: "운영",
-    title: "로그 모니터링",
-    status: 4,
-    statusName: "완료",    
-    color: "successColor",
-    progress: 100,
-    startDate: "2025-07-08",
-    endDate: "2025-08-08",
-    content: `<ul>
-      <li>로그 모니터링 시스템을 점검하였으며,</li>
-      <li><b>이상 징후</b>는 발견되지 않았습니다.</li>
-    </ul>`,
-  },
-  {
-    id: 9,
-    type: "개발",
-    title: "코드 리뷰",
-    status: 1,
-    statusName: "대기 업무",    
-    color: "infoColor",
-    progress: 0,
-    startDate: "2025-07-09",
-    endDate: "2025-10-09",
-    content: `<p>신규 기능에 대한 <b>코드 리뷰</b>가 예정되어 있습니다.</p>
-      <p>참석자: <span style="color:#f59e42;">개발팀 전원</span></p>`,
-  },
-  {
-    id: 10,
-    type: "기획",
-    title: "시장 조사 결과 공유",
-    status: 4,
-    statusName: "완료",    
-    color: "successColor",
-    progress: 100,
-    startDate: "2025-07-10",
-    endDate: "2025-09-10",
-    content: `<p>시장 조사 결과를 팀원들과 <b>공유</b>하였습니다.</p>
-      <ul>
-        <li>주요 경쟁사 분석</li>
-        <li>트렌드 정리</li>
-      </ul>`,
-  },
-  {
-    id: 11,
-    type: "기획",
-    title: "그룹웨어 시장 조사 결과 공유의 제목이 어어엄청 길면 어떻게 될까?",
-    status: 2,
-    statusName: "해야 할 일",    
-    color: "warningColor",
-    progress: 20,
-    startDate: "2025-07-10",    
-    endDate: "2025-10-11",
-    content: `<p>그룹웨어 결과를 팀원들과 <b>공유</b>하였습니다.</p>
-      <ul>
-        <li>주요 경쟁사 분석</li>
-        <li>트렌드 정리</li>
-      </ul>`,
-  },  
-  {
-    id: 12,
-    type: "기획",
-    title: "시장 조사 결과 공유",
-    status: 2,
-    statusName: "해야 할 일",    
-    color: "warningColor",
-    progress: 30,
-    startDate: "2025-07-10",
-    endDate: "2025-07-12",
-    content: `<p>시장 조사 결과를 팀원들과 <b>공유</b>하였습니다.</p>
-      <ul>
-        <li>주요 경쟁사 분석</li>
-        <li>트렌드 정리</li>
-      </ul>`,
-  },    
-]);
-
-const openSelectItem = (card) => {
-  console.log("선택된 카드:", card);
+const openSelectItem = (work) => {
   showModal.value = true;
-  selectedItem.value = card;
+  selectedItem.value = work;
   updateMode.value = false;
   updateMode.value = false;
-  editor.commands.setContent(card.content || "");
-  // 여기에 선택된 카드에 대한 추가 로직을 작성할 수 있습니다.
+  editor.commands.setContent(work.content || "");
+  // 여기에 선택된 업무에 대한 추가 로직을 작성할 수 있습니다.
 };
 
 const getTypeColor = (_type) => {
@@ -937,8 +862,8 @@ function onDragStart(e, id) {
 }
 
 function onDrop(e, toStatus) {
-  const card = cards.value.find((c) => c.id === draggedId);
-  if (card) card.status = toStatus;
+  const work = works.value.find((c) => c.id === draggedId);
+  if (work) work.status = toStatus;
   draggedId = null;
 }
 
@@ -953,7 +878,7 @@ watch(aiResult, async () => {
 </script>
 
 <style>
-.n-card__action {
+.n-work__action {
   padding: 0 !important;
 }
 /* Tailwind 기반 스타일 외 필요 시 여기에 추가 */
