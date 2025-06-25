@@ -91,7 +91,7 @@
         :style="{ 'max-height': textareaMaxHeight + 'px' }"
       ></textarea>
       <!-- 보내기 버튼 (아이콘) -->
-      <button @click="submitAI"
+      <button @click="send_chat"
         class="absolute bottom-15 right-8 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-label="보내기">
@@ -343,6 +343,9 @@ const send_chat = async() =>{
       if (item.type === "user"){
         prompt.push({"role": "user", "content" : item.content})
       }
+      if (item.type === "system"){
+        prompt.push({"role": "assistant", "content" : item.content})
+      }
     }
   }
 
@@ -355,32 +358,37 @@ const send_chat = async() =>{
   const reader = res.body?.getReader();
   const decoder = new TextDecoder();
 
-  if (!reader) return;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
-
-    for (const line of lines) {
-      const text = line.replace('data: ', '');
-      if (text === '[DONE]') return;
-
-      chatResult += text;
-  
-      aiResult.value[aiResult.value.length - 1].content = chatResult;
-      aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
-  
-      await nextTick()
-      if (resultBox.value) {
-        resultBox.value.scrollTop = resultBox.value.scrollHeight
-      }
-
-    }
+  if (!reader) {
+    loading.value = false;
+    return;
   }
 
-  loading.value = false
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+      for (const line of lines) {
+        const text = line.replace('data: ', '');
+        if (text === '[DONE]') return;
+
+        chatResult += text;
+
+        aiResult.value[aiResult.value.length - 1].content = chatResult;
+        aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
+
+        await nextTick();
+        if (resultBox.value) {
+          resultBox.value.scrollTop = resultBox.value.scrollHeight;
+        }
+      }
+    }
+  } finally {
+    loading.value = false;
+  }
+  aiText.value = "";
 }
 </script>
