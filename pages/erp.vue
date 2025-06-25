@@ -86,7 +86,7 @@
         rows="4"
         class="mt-3 w-full resize-none rounded-lg bg-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none text-slate-500"
         placeholder="AI에게 물어보세요..." 
-        @keydown.enter.exact="submitAI"
+        @keydown.enter.exact="send_chat"
         @keydown.shift.enter.stop
         :style="{ 'max-height': textareaMaxHeight + 'px' }"
       ></textarea>
@@ -313,4 +313,74 @@ const useBedrock = async ({ messages }) => {
 
   return res;
 };
+
+const send_chat = async() =>{
+  
+  if (!aiText.value.trim() || loading.value == true) {
+    return; // 입력이 비어있으면 아무 작업도 하지 않음
+  }
+
+  loading.value = true;
+
+  aiResult.value.push({
+    type: 'user',
+    contentType: 'text',
+    content: aiText.value
+  })
+
+  aiResult.value.push({
+    type: 'system',
+    contentType: 'text',
+    content: "AI 응답을 기다리는 중...",
+    proc: true
+  })
+
+  let chatResult = '';
+  let prompt = []
+
+  for(let item of aiResult.value){
+    if(item.proc == undefined){
+      if (item.type === "user"){
+        prompt.push({"role": "user", "content" : item.content})
+      }
+    }
+  }
+
+  const res = await fetch('/api/erp/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: prompt }),
+  });
+
+  const reader = res.body?.getReader();
+  const decoder = new TextDecoder();
+
+  if (!reader) return;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value);
+    const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+    for (const line of lines) {
+      const text = line.replace('data: ', '');
+      if (text === '[DONE]') return;
+
+      chatResult += text;
+  
+      aiResult.value[aiResult.value.length - 1].content = chatResult;
+      aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
+  
+      await nextTick()
+      if (resultBox.value) {
+        resultBox.value.scrollTop = resultBox.value.scrollHeight
+      }
+
+    }
+  }
+
+  loading.value = false
+}
 </script>

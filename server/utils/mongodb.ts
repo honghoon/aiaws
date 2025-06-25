@@ -15,7 +15,7 @@ export async function getMongoClient(): Promise<MongoClient> {
   return client
 }
 
-export async function getDatabase(dbName = 'my-database') {
+export async function getDatabase(dbName = 'aiaws') {
   const client = await getMongoClient()
   return client.db(dbName)
 }
