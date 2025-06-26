@@ -3,7 +3,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelWithResponseStreamCommand,
 } from '@aws-sdk/client-bedrock-runtime';
-
+import type { ServerResponse } from 'http';
 // ✅ 타입 전용으로 명시
 import type { H3Event, EventHandlerRequest } from 'h3';
 import { Readable } from 'stream';
@@ -62,8 +62,31 @@ export async function streamClaudeResponse(messages: ClaudeMessage[], event : H3
     continue;
   }
 }
+  writer.write(`event: end\ndata: [DONE]\n\n`);
+  writer.end();
+}
+
+export async function streamFallbackMessage(event: H3Event, message: string, end: boolean=true) {
+  setResponseHeaders(event, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+
+  const writer = event.node.res;
+
+  for (const char of message) {
+    writer.write(`data: ${char}\n\n`);
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
 
   writer.write(`event: end\ndata: [DONE]\n\n`);
   writer.end();
+}
 
+export async function streamFallbackMessageJump(writer: ServerResponse, message: string) {
+  for (const char of message) {
+    writer.write(`data: ${char}\n\n`);
+    await new Promise(resolve => setTimeout(resolve, 1));
+  }
 }

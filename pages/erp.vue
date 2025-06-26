@@ -17,22 +17,13 @@
                 <p v-if="item.contentType === 'text'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p>
                 
                 <div v-else-if="item.contentType === 'table'">
-                  <n-table :bordered="false" :single-line="false">
-                    <thead>
-                    <tr>
-                      <th v-for="(colName, colindex) in item.col" :key="colindex">{{colName}}</th>
-                    </tr>
-                  </thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td>2</td>
-                        <td>3</td>
-                        <td>...</td>
-                        <td>5</td>
-                      </tr>
-                    </tbody>
-                  </n-table>
+                  <n-data-table
+                    :columns="item.columns"
+                    :data="item.data"
+                    :pagination="{ pageSize: 10 }"
+                    :bordered="true"
+                    :scroll-x="1600"
+                  />
                 </div>
 
                 <div v-else-if="item.contentType === 'createTemplate'">
@@ -336,7 +327,9 @@ const send_chat = async() =>{
   })
 
   let chatResult = '';
+  let fullchatResult = '';
   let prompt = []
+  let is_end = false
 
   for(let item of aiResult.value){
     if(item.proc == undefined){
@@ -375,7 +368,18 @@ const send_chat = async() =>{
         const text = line.replace('data: ', '');
         if (text === '[DONE]') return;
 
+        if (is_end == true){
+          fullchatResult += text;
+          continue;
+        }
+
         chatResult += text;
+        fullchatResult += text;
+
+        if (fullchatResult.includes("--JSON--")){
+          chatResult = chatResult.replace("--JSON--","")
+          is_end = true
+        }
 
         aiResult.value[aiResult.value.length - 1].content = chatResult;
         aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
@@ -387,8 +391,96 @@ const send_chat = async() =>{
       }
     }
   } finally {
+    if (is_end == true){
+      const delimiter = '--JSON--';
+      const parts = fullchatResult.split(delimiter);
+      const afterJson = parts.length > 1 ? parts[1].trim() : '';
+
+      if(afterJson !== ''){
+        let tableRowData = JSON.parse(afterJson)
+        aiResult.value[aiResult.value.length - 1].contentType = "table"
+        aiResult.value[aiResult.value.length - 1].columns = corporate_cardsColumns;
+        aiResult.value[aiResult.value.length - 1].data = tableRowData
+        aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
+        await nextTick();
+        if (resultBox.value) {
+          resultBox.value.scrollTop = resultBox.value.scrollHeight;
+        }
+      }
+    }
     loading.value = false;
   }
   aiText.value = "";
 }
+
+const corporate_cardsColumns = [
+  {
+    title: '전표번호',
+    key: 'slipNumber',
+    width: 120,
+  },
+  {
+    title: '사용일자',
+    key: 'usageDate',
+    width: 120,
+    render(row) {
+      return new Date(row.usageDate).toLocaleDateString()
+    },
+  },
+  {
+    title: '상호',
+    key: 'merchantName',
+    width: 150,
+  },
+  {
+    title: '금액',
+    key: 'amount',
+    width: 100,
+    render(row) {
+      return row.amount.toLocaleString() + ' ' + row.currency
+    },
+  },
+  {
+    title: '부가세',
+    key: 'taxAmount',
+    width: 100,
+    render(row) {
+      return row.taxAmount.toLocaleString()
+    },
+  },
+  {
+    title: '계정과목',
+    key: 'glAccount',
+    width: 100,
+  },
+  {
+    title: '코스트센터',
+    key: 'costCenter',
+    width: 100,
+  },
+  {
+    title: 'WBS',
+    key: 'wbsElement',
+    width: 100,
+  },
+  {
+    title: '사용내역',
+    key: 'description',
+    width: 200,
+  },
+  {
+    title: '회사코드',
+    key: 'companyCode',
+    width: 80,
+    render(row) {
+      return h(NTag, { type: 'info', size: 'small' }, { default: () => row.companyCode })
+    },
+  },
+  {
+    title: '등록자',
+    key: 'createdBy',
+    width: 100,
+  },
+]
+
 </script>
