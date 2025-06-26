@@ -18,9 +18,8 @@
                 
                 <div v-else-if="item.contentType === 'table'">
                   <n-data-table
-                    :columns="item.columns"
+                    :columns="corporate_cardsColumns"
                     :data="item.data"
-                    :pagination="{ pageSize: 10 }"
                     :bordered="true"
                     :scroll-x="1600"
                   />
@@ -94,12 +93,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { h, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
 // Ionicons
 import { IonIcon } from '@ionic/vue'
 import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, linkOutline } from 'ionicons/icons'
 import CharTest from './chartTest.vue'
+import { NTag } from 'naive-ui'
+
 
 const textareaMaxHeight = 100;
 const aiText = ref("")
@@ -399,7 +400,6 @@ const send_chat = async() =>{
       if(afterJson !== ''){
         let tableRowData = JSON.parse(afterJson)
         aiResult.value[aiResult.value.length - 1].contentType = "table"
-        aiResult.value[aiResult.value.length - 1].columns = corporate_cardsColumns;
         aiResult.value[aiResult.value.length - 1].data = tableRowData
         aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
         await nextTick();
@@ -413,6 +413,7 @@ const send_chat = async() =>{
   aiText.value = "";
 }
 
+
 const corporate_cardsColumns = [
   {
     title: '전표번호',
@@ -424,7 +425,7 @@ const corporate_cardsColumns = [
     key: 'usageDate',
     width: 120,
     render(row) {
-      return new Date(row.usageDate).toLocaleDateString()
+      return new Date(row.usageDate).toLocaleDateString();
     },
   },
   {
@@ -437,7 +438,7 @@ const corporate_cardsColumns = [
     key: 'amount',
     width: 100,
     render(row) {
-      return row.amount.toLocaleString() + ' ' + row.currency
+      return `${row.amount.toLocaleString()} ${row.currency || ''}`;
     },
   },
   {
@@ -445,7 +446,7 @@ const corporate_cardsColumns = [
     key: 'taxAmount',
     width: 100,
     render(row) {
-      return row.taxAmount.toLocaleString()
+      return row.taxAmount?.toLocaleString?.() ?? '';
     },
   },
   {
@@ -473,14 +474,14 @@ const corporate_cardsColumns = [
     key: 'companyCode',
     width: 80,
     render(row) {
-      return h(NTag, { type: 'info', size: 'small' }, { default: () => row.companyCode })
+      return h(NTag, { type: 'info', size: 'small' }, { default: () => row.companyCode });
     },
   },
   {
     title: '등록자',
     key: 'createdBy',
     width: 100,
-  },
+  }
 ]
 
 </script>
