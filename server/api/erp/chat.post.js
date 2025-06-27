@@ -4,6 +4,9 @@ import { Readable } from 'stream';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { scenarios } from '~/server/templates/scenarios.js';
+import { corp_card_scenarios_end} from '~/server/templates/corp_card_scenarios_end.js';
+import { corp_card_scenarios } from '~/server/templates/corp_card_scenarios.js';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
@@ -38,11 +41,9 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // scenarios.txt 의 의도를 분석하기 위한 프롬프트 가져오기
-  let filePath = path.join(process.cwd(), 'server/api/erp/scenarios.txt');
-  let messages = fs.readFileSync(filePath, 'utf-8')
-    .replace('${history}', history)
-    .replace('${toMessage}', toMessage);
+  let messages = scenarios
+    .replace('{history}', history)
+    .replace('{toMessage}', toMessage);
 
   // 프롬프트 객체 생성
   let sendPrompt = [{"role": "user", "content" : messages}]
@@ -68,12 +69,11 @@ export default defineEventHandler(async (event) => {
 
   if (result === 1) {
     // return streamFallbackMessage(event, '법인 카드는 짜형이 올려야지!');
-    
-    filePath = path.join(process.cwd(), 'server/api/erp/corp_card_scenarios.txt');
-    messages = fs.readFileSync(filePath, 'utf-8')
-      .replace('${history}', history)
-      .replace('${toMessage}', toMessage)
-      .replace('${today}', today);
+
+    messages = corp_card_scenarios
+      .replace('{history}', history)
+      .replace('{toMessage}', toMessage)
+      .replace('{today}', today);
 
     sendPrompt = [{"role": "user", "content" : messages}]
 
@@ -118,14 +118,13 @@ export default defineEventHandler(async (event) => {
       return;
     }
 
-    filePath = path.join(process.cwd(), 'server/api/erp/corp_card_scenarios_end.txt');
-    messages = fs.readFileSync(filePath, 'utf-8')
-      .replace('${history}', history)
-      .replace('${toMessage}', toMessage)
-      .replace('${today}', today)
-      .replace('${query}', queryText)
-      .replace('${resultCount}', resultDataCount)
-      .replace('${results}', JSON.stringify(formattedResult, null, 2));
+    messages = corp_card_scenarios_end
+      .replace('{history}', history)
+      .replace('{toMessage}', toMessage)
+      .replace('{today}', today)
+      .replace('{query}', queryText)
+      .replace('{resultCount}', resultDataCount)
+      .replace('{results}', JSON.stringify(formattedResult, null, 2));
 
     console.log(messages)
     sendPrompt = [{"role": "user", "content" : messages}]
