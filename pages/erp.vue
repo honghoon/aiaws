@@ -13,19 +13,33 @@
               </div>
               
               <div class="flex-1 min-w-full" v-else>
-                <CharTest class="max-w-[1000px] max-h-[300px]"/>
-                <p v-if="item.contentType === 'text'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p>
+                <!-- <CharTest class="max-w-[1000px] max-h-[300px]"/> -->
+                <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p>
+                <p
+                  v-if="item.contentType === 'proc'"
+                  class="text-sm text-slate-600 font-normal relative overflow-hidden shimmer-bg px-2 py-1 rounded-md"
+                >
+                  {{ item.content }}
+                </p>
                 
-                <div v-else-if="item.contentType === 'table'">
-                  <n-data-table
-                    :columns="corporate_cardsColumns"
-                    :data="item.data"
-                    :bordered="true"
-                    :scroll-x="1600"
-                  />
+                <div v-if="item.contentType === 'table'" class="flex w-full max-w-[1000px]">
+                  <n-card size="small" class="rounded-md w-full">
+                    <n-data-table 
+                        :bordered="true"
+                        :columns="item.col" 
+                        :data="item.tableRowData" 
+                        :pagination="pagination" 
+                        table-layout="fixed"
+                        :sticky-expanded-rows="true"
+                        :flex-height="true"
+                        size="small"
+                        :scroll-x="item.tableWidth"
+                        :style="{ height: '400px' }" >
+                      </n-data-table>
+                  </n-card>
                 </div>
 
-                <div v-else-if="item.contentType === 'createTemplate'">
+                <div v-if="item.contentType === 'createTemplate'">
                   <n-table :bordered="false" :single-line="false">
                     <thead>
                     <tr>
@@ -44,7 +58,7 @@
                   </n-table>
                 </div>
 
-                <div v-else-if="item.contentType === 'updateTemplate'">
+                <div v-if="item.contentType === 'updateTemplate'">
                   <n-table :bordered="false" :single-line="false">
                     <thead>
                     <tr>
@@ -100,13 +114,16 @@ import { IonIcon } from '@ionic/vue'
 import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, linkOutline } from 'ionicons/icons'
 import CharTest from './chartTest.vue'
 import { NTag } from 'naive-ui'
-
+import { createColumns } from '~/utils/tableUtils'
 
 const textareaMaxHeight = 100;
 const aiText = ref("")
 const aiResult = ref([])
 const resultBox = ref(null)
 const loading = ref(false)
+const pagination = {
+        pageSize: 5
+}
 
 // aiResult가 변경될 때마다 스크롤을 하단으로 이동
 watch(aiResult, async () => {
@@ -313,12 +330,14 @@ const send_chat = async() =>{
   }
 
   loading.value = true;
-
+  
   aiResult.value.push({
     type: 'user',
     contentType: 'text',
     content: aiText.value
   })
+
+  aiText.value = "";
 
   aiResult.value.push({
     type: 'system',
@@ -357,6 +376,11 @@ const send_chat = async() =>{
     return;
   }
 
+  const messgageKey = "--message--";
+  const prockey = "--proc--";
+  const jsonKey = "--json--";
+  let chatType = "text";
+
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -369,6 +393,25 @@ const send_chat = async() =>{
         const text = line.replace('data: ', '');
         if (text === '[DONE]') return;
 
+        if (text === prockey) {
+          chatType = "proc";
+          chatResult = ""; // 챗 초기화
+          continue;
+        }
+
+        if (text === messgageKey) {
+          chatType = "text";
+          chatResult = ""; // 챗 초기화
+          continue;
+        }
+
+        if (text === jsonKey){
+          is_end = true
+          fullchatResult += text;
+          continue;
+        }
+
+        // 빈 줄은 무시
         if (is_end == true){
           fullchatResult += text;
           continue;
@@ -377,11 +420,8 @@ const send_chat = async() =>{
         chatResult += text;
         fullchatResult += text;
 
-        if (fullchatResult.includes("--JSON--")){
-          chatResult = chatResult.replace("--JSON--","")
-          is_end = true
-        }
 
+        aiResult.value[aiResult.value.length - 1].contentType = chatType;
         aiResult.value[aiResult.value.length - 1].content = chatResult;
         aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
 
@@ -393,14 +433,20 @@ const send_chat = async() =>{
     }
   } finally {
     if (is_end == true){
-      const delimiter = '--JSON--';
-      const parts = fullchatResult.split(delimiter);
+      const parts = fullchatResult.split(jsonKey);
       const afterJson = parts.length > 1 ? parts[1].trim() : '';
 
       if(afterJson !== ''){
         let tableRowData = JSON.parse(afterJson)
-        aiResult.value[aiResult.value.length - 1].contentType = "table"
-        aiResult.value[aiResult.value.length - 1].data = tableRowData
+
+        if (tableRowData.type == 'table') {
+          aiResult.value[aiResult.value.length - 1].contentType = "table"
+          const {columns , tableWidth} = createColumns(corporate_cardsColumns)
+          aiResult.value[aiResult.value.length - 1].col = columns
+          aiResult.value[aiResult.value.length - 1].tableWidth = tableWidth
+          aiResult.value[aiResult.value.length - 1].tableRowData = tableRowData.data
+        }
+        
         aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
         await nextTick();
         if (resultBox.value) {
@@ -418,15 +464,12 @@ const corporate_cardsColumns = [
   {
     title: '전표번호',
     key: 'slipNumber',
-    width: 120,
+    width: 120
   },
   {
     title: '사용일자',
     key: 'usageDate',
-    width: 120,
-    render(row) {
-      return new Date(row.usageDate).toLocaleDateString();
-    },
+    width: 120
   },
   {
     title: '상호',
@@ -437,17 +480,13 @@ const corporate_cardsColumns = [
     title: '금액',
     key: 'amount',
     width: 100,
-    render(row) {
-      return `${row.amount.toLocaleString()} ${row.currency || ''}`;
-    },
+    type: 'amount'
   },
   {
     title: '부가세',
     key: 'taxAmount',
     width: 100,
-    render(row) {
-      return row.taxAmount?.toLocaleString?.() ?? '';
-    },
+    type: 'amount'
   },
   {
     title: '계정과목',
@@ -472,16 +511,35 @@ const corporate_cardsColumns = [
   {
     title: '회사코드',
     key: 'companyCode',
-    width: 80,
-    render(row) {
-      return h(NTag, { type: 'info', size: 'small' }, { default: () => row.companyCode });
-    },
+    width: 120
   },
   {
     title: '등록자',
     key: 'createdBy',
-    width: 100,
+    width: 120,
   }
 ]
 
 </script>
+
+<style scoped>
+@keyframes shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.08) 0%,
+    rgba(255, 255, 255, 0.6) 40%,
+    rgba(226, 232, 240, 0.2) 100%
+  );
+  background-size: 300% 100%;
+  animation: shimmer 2s infinite linear;
+}
+</style>

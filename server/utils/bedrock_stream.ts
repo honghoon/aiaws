@@ -84,9 +84,68 @@ export async function streamFallbackMessage(event: H3Event, message: string, end
   writer.end();
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function streamFallbackMessageJump(writer: ServerResponse, message: string) {
-  for (const char of message) {
-    writer.write(`data: ${char}\n\n`);
-    await new Promise(resolve => setTimeout(resolve, 1));
+  const maxChunkLength = 300;
+
+  // 1. \n 기준으로 문단 단위로 쪼갬
+  const paragraphs = message.split('\n');
+
+  for (const paragraph of paragraphs) {
+    let start = 0;
+    while (start < paragraph.length) {
+      // 2. 300자씩 쪼갬
+      const chunk = paragraph.slice(start, start + maxChunkLength);
+      writer.write(`data: ${chunk}\n\n`);
+      await sleep(2); // 10ms 정도가 안정적
+      start += maxChunkLength;
+    }
+
+    // 문단 간 줄바꿈도 표시
+    writer.write(`data: \n\n`);
+    await sleep(2);
+  }
+}
+
+export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, messages: ClaudeMessage[]) {
+  
+  const command = new InvokeModelWithResponseStreamCommand({
+    modelId: 'anthropic.claude-3-sonnet-20240229-v1:0',
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 8000,
+      temperature: 0.7,
+      messages
+    }),
+  });
+
+  const response = await client.send(command);
+
+  if (!response.body) {
+    throw new Error('Claude 응답 스트림이 비어있습니다.');
+  }
+
+  for await (const chunk of response.body) {
+    try {
+      // chunk는 이미 JS 객체
+      const base64 = chunk?.chunk?.bytes;
+      if (!base64) continue;
+
+      const buffer = Buffer.from(base64, 'base64');
+      const data = JSON.parse(buffer.toString('utf-8')); // 실제 Claude 메시지
+
+      const completion = data.completion ?? data.delta?.text ?? '';
+      if (completion) {
+        writer.write(`data: ${completion}\n\n`);
+      }
+    } catch (err) {
+      console.error('스트림 처리 중 오류:', err);
+      continue;
+    }
   }
 }
