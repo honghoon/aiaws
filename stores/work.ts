@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useWorkStore = defineStore('work', () => {
-const works = ref([
+let works = ref([
   {
     id: 1,
     type: "개발",
