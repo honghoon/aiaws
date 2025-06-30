@@ -14,7 +14,8 @@
               
               <div class="flex-1 min-w-full" v-else>
                 <!-- <CharTest class="max-w-[1000px] max-h-[300px]"/> -->
-                <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p>
+                <div  v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal" v-html="md.render(item.content)"></div>
+                <!-- <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p> -->
                 <p
                   v-if="item.contentType === 'proc'"
                   class="text-sm text-slate-600 font-normal relative overflow-hidden shimmer-bg px-2 py-1 rounded-md"
@@ -115,7 +116,9 @@ import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, lin
 import CharTest from './chartTest.vue'
 import { NTag } from 'naive-ui'
 import { createColumns } from '~/utils/tableUtils'
+import MarkdownIt from 'markdown-it'
 
+const md = new MarkdownIt()
 const textareaMaxHeight = 100;
 const aiText = ref("")
 const aiResult = ref([])

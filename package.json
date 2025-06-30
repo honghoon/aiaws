@@ -29,6 +29,7 @@
     "chart.js": "^4.5.0",
     "ionicons": "^8.0.9",
     "langchain": "^0.3.28",
+    "markdown-it": "^14.1.0",
     "mongodb": "^6.17.0",
     "naive-ui": "^2.41.1",
     "nuxt": "^3.17.5",
