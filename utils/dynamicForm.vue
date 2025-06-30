@@ -4,35 +4,57 @@
     class="w-full max-w-5xl mx-auto rounded-2xl shadow-md border border-gray-200 bg-white"
     content-style="padding: 2rem;"
   >
-    <!-- 제목 -->
     <h3 class="text-lg font-bold text-slate-500 mb-6 border-b pb-2">
       {{ title }}
     </h3>
 
-    <!-- 폼 영역 -->
+    <!-- ✅ 보기 모드 -->
+    <div v-if="isViewMode" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div
+        v-for="(field, index) in schema"
+        :key="index"
+        :class="getColSpanClass(field)"
+      >
+        <div class="text-sm text-slate-500 font-semibold mb-1">
+          {{ field.label }}
+        </div>
+        <div class="text-base text-slate-700">
+          {{ formatValue(field, localModel[field.key]) }}
+        </div>
+      </div>
+      <div class="md:col-span-3 pt-4 flex justify-end border-t mt-4">
+        <n-button type="default" @click="isViewMode = false">
+          수정하기
+        </n-button>
+      </div>
+    </div>
+
+    <!-- ✅ 수정 모드 -->
     <n-form
+      v-else
+      ref="formRef"
       :model="localModel"
+      :rules="formRules"
       label-placement="left"
       :label-width="100"
-      class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6"
+      class="grid grid-cols-1 md:grid-cols-3 gap-0"
     >
       <n-form-item
         v-for="(field, index) in schema"
         :key="index"
         :label="field.label"
         :path="field.key"
-        class="w-full"
+        :class="getColSpanClass(field)"
       >
         <component
           :is="resolveComponent(field)"
           v-model:value="localModel[field.key]"
           v-bind="getComponentProps(field)"
-          class="transition duration-150 ease-in-out focus-within:ring-2 focus-within:ring-blue-400"
+          class="w-full"
         />
       </n-form-item>
 
-      <!-- 버튼 영역 -->
-      <div class="md:col-span-2 pt-4 flex justify-end border-t mt-4">
+      <div class="md:col-span-3 pt-4 flex justify-end border-t mt-4">
         <n-button type="primary" size="large" @click="onSubmit">
           제출
         </n-button>
@@ -43,67 +65,155 @@
 
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from 'vue'
 import {
-  NForm,
-  NFormItem,
-  NInput,
-  NInputNumber,
-  NSelect,
-  NButton,
-} from "naive-ui";
+  NForm, NFormItem, NInput, NInputNumber, NSelect, NButton, useMessage, NDatePicker
+} from 'naive-ui'
+
+const message = useMessage()
 
 const props = defineProps({
-  schema: {
-    type: Array,
-    required: true,
-  },
-  modelValue: {
-    type: Object,
-    required: true,
-  },
-  title: {
-    type: String,
-    default: "테이블 제목",
-  },
-});
+  title: String,
+  schema: Array,
+  modelValue: Object
+})
+const emit = defineEmits(['update:modelValue'])
 
-const emit = defineEmits(["update:modelValue"]);
+const formRef = ref(null)
+const isViewMode = ref(false)
 
-// ✅ localModel은 props.modelValue를 Proxy처럼 감싸 사용
 const localModel = computed({
   get: () => props.modelValue,
-  set: (val) => emit("update:modelValue", val),
-});
+  set: (val) => emit('update:modelValue', val)
+})
 
-// ✅ 타입별 컴포넌트 결정
 const resolveComponent = (field) => {
   switch (field.type) {
-    case "text":
-      return NInput;
-    case "number":
-      return NInputNumber;
-    case "select":
-      return NSelect;
-    default:
-      return NInput;
+    case 'text': return NInput
+    case 'number': return NInputNumber
+    case 'select': return NSelect
+    case 'textarea': return NInput
+    case 'date': return NDatePicker
+    default: return NInput
   }
-};
+}
 
-// ✅ 공통 props 설정
 const getComponentProps = (field) => {
   const props = {
-    placeholder: field.label,
-    class: "w-full",
-  };
-  if (field.type === "select") {
-    props.options = field.options || [];
-    props.clearable = true;
+    placeholder: field.placeholder || field.label
   }
-  return props;
-};
+  if (field.type === 'textarea') props.type = 'textarea'
+  if (field.type === 'select') {
+    props.options = field.options || []
+    props.clearable = true
+  }
+  if (field.type === 'date') {
+    props.type = 'date'
+    props.clearable = true
+    props.format = 'yyyy-MM-dd'
+    props.valueFormat = 'timestamp' // Unix timestamp (ms)
+  }
+  return props
+}
 
-const onSubmit = () => {
-  console.log("✅ 제출된 데이터:", JSON.stringify(localModel.value, null, 2));
-};
+const getColSpanClass = (field) => {
+  const colSpan = field.colSpan || 1
+  return `w-full col-span-1 md:col-span-${colSpan}`
+}
+
+const formatValue = (field, value) => {
+  if (field.type === 'select' && field.options) {
+    const found = field.options.find(opt => opt.value === value)
+    return found ? found.label : value
+  }
+   if (field.type === 'date') {
+    const date = new Date(value)
+    return isNaN(date.getTime()) ? '-' : date.toLocaleDateString()
+  }
+
+  return value ?? '-'
+}
+
+const formRules = computed(() => {
+  const rules = {}
+  props.schema.forEach(field => {
+    const fieldRules = []
+
+    if (field.type === 'number') {
+      fieldRules.push({
+        validator: (_, value) => {
+          if (value === '' || value === null || value === undefined) {
+            return Promise.reject(`${field.label}을(를) 입력해주세요.`)
+          }
+          if (isNaN(Number(value))) {
+            return Promise.reject(`${field.label}은 숫자여야 합니다.`)
+          }
+          if (field.min != null && value < field.min) {
+            return Promise.reject(`${field.label}은 최소 ${field.min} 이상이어야 합니다.`)
+          }
+          if (field.max != null && value > field.max) {
+            return Promise.reject(`${field.label}은 최대 ${field.max} 이하여야 합니다.`)
+          }
+          return Promise.resolve()
+        },
+        trigger: ['blur', 'change']
+      })
+    }
+
+    if (field.type === 'text') {
+      if (field.required) {
+        fieldRules.push({
+          required: true,
+          message: `${field.label}을(를) 입력해주세요.`,
+          trigger: ['blur', 'change']
+        })
+      }
+      if (field.minLength) {
+        fieldRules.push({
+          min: field.minLength,
+          message: `${field.label}은 최소 ${field.minLength}자 이상 입력해주세요.`,
+          trigger: 'blur'
+        })
+      }
+      if (field.maxLength) {
+        fieldRules.push({
+          max: field.maxLength,
+          message: `${field.label}은 최대 ${field.maxLength}자까지 입력 가능합니다.`,
+          trigger: 'blur'
+        })
+      }
+      if (field.pattern) {
+        fieldRules.push({
+          pattern: field.pattern,
+          message: `${field.label}의 형식이 올바르지 않습니다.`,
+          trigger: ['blur', 'change']
+        })
+      }
+    }
+
+    if (field.type === 'select') {
+      if (field.required) {
+        fieldRules.push({
+          required: true,
+          message: `${field.label}을(를) 선택해주세요.`,
+          trigger: ['blur', 'change']
+        })
+      }
+    }
+
+    rules[field.key] = fieldRules
+  })
+  return rules
+})
+
+const onSubmit = async () => {
+  try {
+    await formRef.value?.validate()
+    message.success('✅ 제출이 완료되었습니다.')
+    isViewMode.value = true
+  } catch (err) {
+    console.warn('❌ 유효성 실패:', err)
+  }
+}
+
 </script>

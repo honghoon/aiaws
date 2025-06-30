@@ -72,12 +72,18 @@ export default defineEventHandler(async (event) => {
 
   if (result === 1) {
     await send1Proc(writer, history, toMessage);
+    return
   }else if (result === 2) {
     await send2Proc(writer, history, toMessage);
+    return
   }else if (result === 3) {
     await send3Proc(writer, history, toMessage);
+    return
   }
   // 최종 스트림 데이터
   //await streamClaudeResponse(prompt, event);
-
+  await streamFallbackMessageJump(writer, messgageKey)
+  await streamFallbackMessageJump(writer, '죄송합니다. 해당 요청은 지원되지 않거나 인식할 수 없습니다.\n')
+  writer.write(`event: end\ndata: [DONE]\n\n`);
+  writer.end();
 });

@@ -29,12 +29,12 @@ export const send3Proc = async (writer, history, toMessage) => {
 
 const formModel = {
   name: '짜지훈',
-  age: null,
+  age: 11,
   email: '',
   gender: '',
   interests: [],     // ✅ multiple select
   bio: '',
-  joinDate: null     // ✅ date
+  joinDate: '2025-01-03'     // ✅ date
 }
 
 const schema = [
@@ -49,7 +49,7 @@ const schema = [
     label: '나이',
     key: 'age',
     type: 'number',
-    required: true,
+    min: 20,
     placeholder: '숫자만 입력'
   },
   {
@@ -82,16 +82,11 @@ const schema = [
     placeholder: '하나 이상 선택'
   },
   {
-    label: '소개',
-    key: 'bio',
-    type: 'textarea',
-    placeholder: '자기소개를 입력하세요'
-  },
-  {
     label: '가입일',
     key: 'joinDate',
     type: 'date'
-  }
+  },
+   { label: '소개', key: 'bio', type: 'textarea', colSpan: 3 }
 ]
 
 function parseMongoQueryFromText(queryText) {
