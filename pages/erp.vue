@@ -1,10 +1,10 @@
 <template>
   <div class="relative">
-    <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6">
+    <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6 w-full overflow-x-hidden">
       
-      <div class="min-h-[calc(100vh-230px)] h-[calc(100vh-230px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3">
+      <div class="min-h-[calc(100vh-230px)] h-[calc(100vh-230px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3 w-full overflow-x-hidden">
         <div class="bg-white flex-1 flex flex-col rounded-md w-full h-full overflow-y-auto overflow-x-hidden">
-          <div ref="resultBox" class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto">
+          <div ref="resultBox" class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto overflow-x-hidden">
             <div v-for="(item, index) in aiResult" :key="index"
               class="flex flex-col items-start gap-3">
               
@@ -12,9 +12,9 @@
                 <span class="inline-flex items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-normal text-slate-600 ring-1 ring-inset ring-gray-500/10 whitespace-pre-line block"> {{ item.content }}</span>
               </div>
               
-              <div class="flex-1 min-w-full" v-else>
+              <div class="flex-1 min-w-full max-w-full overflow-x-hidden" v-else>
                 <!-- <CharTest class="max-w-[1000px] max-h-[300px]"/> -->
-                <div  v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal" v-html="md.render(item.content)"></div>
+                <div  v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal " v-html="md.render(item.content)" style="max-width: calc(100% - 300px);"></div>
                 <!-- <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p> -->
                 <p
                   v-if="item.contentType === 'proc'"
@@ -23,22 +23,32 @@
                   {{ item.content }}
                 </p>
                 
-                <div v-if="item.contentType === 'table'" class="flex w-full max-w-[1000px]">
-                  <n-card size="small" class="rounded-md w-full">
-                    <n-data-table 
-                        :bordered="true"
-                        :columns="item.col" 
-                        :data="item.tableRowData" 
-                        :pagination="pagination" 
-                        table-layout="fixed"
-                        :sticky-expanded-rows="true"
-                        :flex-height="true"
-                        size="small"
-                        :scroll-x="item.tableWidth"
-                        :style="{ height: '400px' }" >
-                      </n-data-table>
-                  </n-card>
+                <div v-if="item.contentType === 'table'" class="flex w-full" style="max-width: 100%;">
+                  <ComTable 
+                    :columns="item.col" 
+                    :tableRowData="item.tableRowData" 
+                    :tableTitle = "item.title"
+                  />
                 </div>
+
+                <div v-if="item.contentType === 'table_edit'" class="flex w-full" style="max-width: 100%;">
+                  <ComTable 
+                    :columns="item.col" 
+                    :tableRowData="item.tableRowData" 
+                    :tableTitle = "item.title"
+                    edit="edit"
+                  />
+                </div>
+
+                <div v-if="item.contentType === 'form'" class="flex w-full" style="max-width: 100%;">
+                  <dynamicForm 
+                    :schema="item.schema"
+                    :modelValue="item.modelValue"
+                    :title="item.title"
+                  />
+                </div>
+
+                
 
                 <div v-if="item.contentType === 'createTemplate'">
                   <n-table :bordered="false" :single-line="false">
@@ -116,6 +126,8 @@ import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, lin
 import CharTest from './chartTest.vue'
 import { NTag } from 'naive-ui'
 import { createColumns } from '~/utils/tableUtils'
+import ComTable from '~/utils/comTable.vue'
+import dynamicForm from '~/utils/dynamicForm.vue' 
 import MarkdownIt from 'markdown-it'
 
 const md = new MarkdownIt()
@@ -441,13 +453,19 @@ const send_chat = async() =>{
 
       if(afterJson !== ''){
         let tableRowData = JSON.parse(afterJson)
-
-        if (tableRowData.type == 'table') {
-          aiResult.value[aiResult.value.length - 1].contentType = "table"
-          const {columns , tableWidth} = createColumns(corporate_cardsColumns)
-          aiResult.value[aiResult.value.length - 1].col = columns
-          aiResult.value[aiResult.value.length - 1].tableWidth = tableWidth
+        
+        if (tableRowData.type == 'table' || tableRowData.type == 'table_edit') {
+          aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type
+          aiResult.value[aiResult.value.length - 1].col = tableRowData.columns
+          aiResult.value[aiResult.value.length - 1].title = tableRowData.title
           aiResult.value[aiResult.value.length - 1].tableRowData = tableRowData.data
+        }
+
+        if (tableRowData.type == 'form') {
+          aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type
+          aiResult.value[aiResult.value.length - 1].title = tableRowData.title
+          aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema
+          aiResult.value[aiResult.value.length - 1].modelValue = tableRowData.modelValue
         }
         
         aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
@@ -461,67 +479,6 @@ const send_chat = async() =>{
   }
   aiText.value = "";
 }
-
-
-const corporate_cardsColumns = [
-  {
-    title: '전표번호',
-    key: 'slipNumber',
-    width: 120
-  },
-  {
-    title: '사용일자',
-    key: 'usageDate',
-    width: 120
-  },
-  {
-    title: '상호',
-    key: 'merchantName',
-    width: 150,
-  },
-  {
-    title: '금액',
-    key: 'amount',
-    width: 100,
-    type: 'amount'
-  },
-  {
-    title: '부가세',
-    key: 'taxAmount',
-    width: 100,
-    type: 'amount'
-  },
-  {
-    title: '계정과목',
-    key: 'glAccount',
-    width: 100,
-  },
-  {
-    title: '코스트센터',
-    key: 'costCenter',
-    width: 100,
-  },
-  {
-    title: 'WBS',
-    key: 'wbsElement',
-    width: 100,
-  },
-  {
-    title: '사용내역',
-    key: 'description',
-    width: 200,
-  },
-  {
-    title: '회사코드',
-    key: 'companyCode',
-    width: 120
-  },
-  {
-    title: '등록자',
-    key: 'createdBy',
-    width: 120,
-  }
-]
 
 </script>
 
