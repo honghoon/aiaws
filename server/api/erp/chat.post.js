@@ -10,6 +10,7 @@ import { corp_card_scenarios } from '~/server/templates/corp_card_scenarios.js';
 import { send1Proc } from '~/server/api/erp/result1Proc';
 import { send2Proc } from '~/server/api/erp/result2Proc';
 import { send3Proc } from '~/server/api/erp/result3Proc';
+import { send6Proc } from '~/server/api/erp/result6Proc';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
@@ -79,7 +80,11 @@ export default defineEventHandler(async (event) => {
   }else if (result === 3) {
     await send3Proc(writer, history, toMessage);
     return
+  }else if (result === 6) {
+    await send6Proc(writer, history, toMessage);
+    return
   }
+
   // 최종 스트림 데이터
   //await streamClaudeResponse(prompt, event);
   await streamFallbackMessageJump(writer, messgageKey)

@@ -13,7 +13,7 @@
           "cwd": "${workspaceFolder}",
           "autoAttachChildProcesses": true,
           "skipFiles": ["<node_internals>/**"],
-          "console": "integratedTerminal" // 필요 시 변경 가능: "internalConsole", "externalTerminal"
+          "console": "internalConsole" // 필요 시 변경 가능: "internalConsole", "externalTerminal"
         },
         {
             "type": "chrome",

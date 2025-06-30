@@ -1,4 +1,3 @@
-
 import { sendClaudeResponseInvoke } from  '~/server/utils/bedrock_invoke';
 import { corp_card_scenarios_end} from '~/server/templates/corp_card_scenarios_end.js';
 import { corp_card_scenarios } from '~/server/templates/corp_card_scenarios.js';
@@ -154,8 +153,12 @@ const corporate_cardsColumns = [
 
 function parseMongoQueryFromText(queryText) {
   try {
-    const fn = new Function(`return (${queryText});`);
-    return fn();
+    // ISODate("...") → "..." 로 치환
+    const cleaned = queryText
+      .replace(/ISODate\("(.*?)"\)/g, '"$1"')   // ISODate 제거 → 문자열 처리
+      .replace(/\/\/.*$/gm, '');                // 주석 제거
+
+    return JSON.parse(cleaned);
   } catch (e) {
     console.error('⚠️ MongoDB 쿼리 파싱 실패:', e.message);
     return {};

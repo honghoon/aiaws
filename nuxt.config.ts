@@ -6,6 +6,9 @@ import Components from 'unplugin-vue-components/vite'
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
+  nitro: {
+    logLevel: 'debug' // 또는 'debug'
+  },
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
