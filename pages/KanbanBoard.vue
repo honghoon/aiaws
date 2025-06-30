@@ -7,7 +7,7 @@
             placeholder="처리자 검색 조건.."
             v-model:value="searchUser"
             :clearable="true"
-            bordered="false"
+            :bordered="false"
             class="n-select-nowrap"
             style="width: 300px"
             value-field="name"
@@ -18,9 +18,12 @@
           <n-date-picker v-model:value="range" type="daterange" clearable />
         </div>
         <div class="flex pb-3 justify-end gap-3 items-center">
-          <n-button strong secondary round type="primary">
-            데이터 불러오기
-          </n-button>
+          <n-button strong secondary round type="primary" @click="showFileUploadModal = true">데이터 불러오기</n-button>
+          <FileUploadModal
+            :show="showFileUploadModal"
+            @close="showFileUploadModal = false"
+            @fileUploaded="handleFileUploaded"
+          />
           <n-button
             strong
             secondary
@@ -176,7 +179,7 @@
                     </div>
 
                     <div v-else-if="item.contentType === 'table'">
-                      <n-table :bordered="false" :single-line="false">
+                      <n-table ::bordered="false" :single-line="false">
                         <thead>
                           <tr>
                             <th
@@ -200,7 +203,7 @@
                     </div>
 
                     <div v-else-if="item.contentType === 'createTemplate'">
-                      <n-table :bordered="false" :single-line="false">
+                      <n-table ::bordered="false" :single-line="false">
                         <thead>
                           <tr>
                             <th
@@ -224,7 +227,7 @@
                     </div>
 
                     <div v-else-if="item.contentType === 'updateTemplate'">
-                      <n-table :bordered="false" :single-line="false">
+                      <n-table ::bordered="false" :single-line="false">
                         <thead>
                           <tr>
                             <th
@@ -479,6 +482,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { OpenOutline } from "@vicons/ionicons5";
 import { Editor, EditorContent } from "@tiptap/vue-3";
+
 import StarterKit from "@tiptap/starter-kit";
 import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
@@ -486,6 +490,7 @@ import ListItem from "@tiptap/extension-list-item";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import Underline from "@tiptap/extension-underline";
+import FileUploadModal from './fileUpload/fileUploadModal.vue';
 import Link from "@tiptap/extension-link";
 import { useWorkStore } from '~/stores/work';
 
@@ -528,6 +533,12 @@ const sessionUser = ref({
   email: "nawoongjin@woongjin.co.kr",
 });
 
+const showFileUploadModal = ref(false);
+const handleFileUploaded = function(file) {
+  console.log('부모 컴포넌트에서 받은 파일:', file)
+  // 추가 처리 로직 작성 가능
+}
+
 const extensions = [
   StarterKit.configure({
     bulletList: { keepMarks: true },
@@ -535,7 +546,6 @@ const extensions = [
   }),
   TextStyle,
   Color,
-  ListItem,
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   Highlight,
   Underline,
