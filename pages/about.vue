@@ -133,7 +133,7 @@ import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, lin
 // 할일데이터
 import { useWorkStore } from '~/stores/work';
 // 프롬프트 자료
-import { aboutSecenarios } from '~/server/templates/about_secenarios.js';
+import { aboutScenarios } from '~/utils/prompts/about_secenarios.js';
 
 const workStore = useWorkStore()
 const works = workStore.works
@@ -316,10 +316,11 @@ async function submitAI() {
 
 
   // 금주 주간보고
-  let messages = aboutSecenarios
+  let messages = aboutScenarios
     // .replace('{history}', history)
     // .replace('{toMessage}', toMessage)
   .replace('{today}', today)
+  .replace('{tasks}', JSON.stringify(thisWeekWorks))
  // .replace('{thisWeekWorks}', thisWeekWorks);
 
   prompt.push({"role": "user", "content": "\n\n업무목록:" +  messages + thisWeekWorks});
