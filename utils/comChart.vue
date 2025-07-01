@@ -1,11 +1,13 @@
 <!-- components/v-chart.vue -->
 <template>
   <Bar v-if="type=='bar'" :data="chartData" :options="chartOptions" class="max-h-[300px]" />
+  <Pie v-if="type=='pie'" :data="chartData" :options="chartOptions" class="max-h-[300px]" />
 </template>
 
 <script setup>
 import { reactive, watch, onMounted } from 'vue'
-import { Bar } from 'vue-chartjs' 
+import { Bar, Pie } from 'vue-chartjs' 
+
 import {
   Chart as ChartJS,
   Title,
@@ -13,11 +15,12 @@ import {
   Legend,
   BarElement,
   CategoryScale,
-  LinearScale
+  LinearScale,
+  ArcElement
 } from 'chart.js'
 
 // Chart.js 필수 요소 등록
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement)
 
 const props = defineProps({
   data: Object
@@ -55,8 +58,8 @@ const chartOptions = ref({
 })
 
 const processChart = (param)=>{
-  if (param.chartType == 'bar'){
-    type.value = "bar"
+  if (param.chartType == 'bar' || param.chartType == 'pie'){
+    type.value = param.chartType
     console.log(param)
     chartOptions.value = {
       responsive: true,
@@ -76,7 +79,14 @@ const processChart = (param)=>{
     let index = 1
     for(let item of param.data){
       labels.push(getNested(item,param.xField))
-      datasets[0].backgroundColor = getColor(index)
+      if (param.chartType == 'pie'){
+        if (datasets[0].backgroundColor == undefined){
+          datasets[0].backgroundColor = []
+        }
+        datasets[0].backgroundColor.push(getColor(index))
+      }else{
+        datasets[0].backgroundColor = getColor(index)
+      }
       datasets[0].label = param.title
       datasets[0].data.push(item[param.yField])
       index += 1

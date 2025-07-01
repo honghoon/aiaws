@@ -130,6 +130,8 @@ export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, m
     throw new Error('Claude 응답 스트림이 비어있습니다.');
   }
 
+  let bufferText = '';
+
   for await (const chunk of response.body) {
     try {
       // chunk는 이미 JS 객체
@@ -141,11 +143,23 @@ export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, m
 
       const completion = data.completion ?? data.delta?.text ?? '';
       if (completion) {
-        writer.write(`data: ${completion}\n\n`);
+        bufferText += completion;
+
+        // 일정 길이 이상 쌓이면 flush
+        if (bufferText.length >= 10 || completion.includes('\n')) {
+          writer.write(`data: ${bufferText}\n\n`);
+          bufferText = '';
+        }
       }
     } catch (err) {
       console.error('스트림 처리 중 오류:', err);
       continue;
     }
   }
+
+  // 루프 종료 시 남은 텍스트도 전송
+  if (bufferText.length > 0) {
+    writer.write(`data: ${bufferText}\n\n`);
+  }
+
 }

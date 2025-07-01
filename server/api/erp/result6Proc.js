@@ -30,6 +30,8 @@ export const send6Proc = async (writer, history, toMessage) => {
   let resultDataSet = null;
   let resultDataCount = null;
 
+  console.log("query", queryObj)./
+
   if (queryObj.queryType === 'find') {
     resultDataSet = await db.collection(queryObj.collection).find(queryObj.filter || {}, {
       projection: queryObj.projection || {}

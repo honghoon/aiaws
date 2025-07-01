@@ -14,7 +14,9 @@
               
               <div class="flex-1 min-w-full max-w-full overflow-x-hidden" v-else>
                 <!-- <CharTest class="max-w-[1000px] max-h-[300px]"/> -->
-                <div  v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal " v-html="md.render(item.content)" style="max-width: calc(100% - 300px);"></div>
+                <div  v-if="item.contentType != 'proc'" class="flex flex-col whitespace-pre-lines" style="max-width: calc(100% - 300px);">
+                  <MdPreview :modelValue="item.content" />
+                </div>
                 <!-- <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p> -->
                 <p
                   v-if="item.contentType === 'proc'"
@@ -136,8 +138,18 @@ import ComTable from '~/utils/comTable.vue'
 import ComChart from '~/utils/comChart.vue'
 import dynamicForm from '~/utils/dynamicForm.vue' 
 import MarkdownIt from 'markdown-it'
+import hljs from "highlight.js";
+import mila from 'markdown-it-link-attributes'
+import { MdPreview } from 'md-editor-v3'
+import 'md-editor-v3/lib/preview.css'
 
-const md = new MarkdownIt()
+const md = new MarkdownIt({
+  html: true,       // HTML 태그 허용
+  linkify: true,    // www.naver.com → 자동 링크 변환
+  typographer: true,// 스마트 따옴표, 대시, 기호 자동 변환
+  breaks: true      // 줄바꿈(\n) → <br>
+})
+
 const textareaMaxHeight = 100;
 const aiText = ref("")
 const aiResult = ref([])
@@ -492,6 +504,51 @@ const send_chat = async() =>{
   aiText.value = "";
 }
 
+/** table 이 있는 경우 스타일 추가 하기  */
+const styledContent = (content) => {
+  // 테이블 요소를 포함하고 있는지 검사
+
+  let rehtml = renderedHtml(content)
+  const containsTable = /<table[^>]*>/.test(rehtml);
+  if (containsTable) {
+    // 테이블 요소에 스타일 클래스를 추가합니다.
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = rehtml;
+    wrapper.querySelectorAll("table").forEach((table) => {
+      table.classList.add("table-style");
+    });
+    return wrapper.innerHTML;
+  }
+  return rehtml;
+}
+
+
+const renderedHtml = (html) => {      
+  // Markdown-it 인스턴스 생성
+  const md = new MarkdownIt({
+    html: true, // HTML 태그 허용
+    breaks: true,
+    highlight: (str, lang) => {
+      if (lang && hljs.getLanguage(lang)) {
+        try {
+          return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`;
+        } catch (error) {console.error}
+      }
+      return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`; // 기본 처리
+    },
+  });
+
+  md.use(mila, {
+    pattern: /^https?:\/\//,  // http(s)로 시작하는 외부 링크에만 적용
+    attrs: {
+      target: '_blank',
+      rel: 'noopener noreferrer'
+    }
+  });
+
+  // LLM 응답을 Markdown에서 HTML로 변환
+  return md.render(html);
+}
 </script>
 
 <style scoped>
