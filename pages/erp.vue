@@ -14,7 +14,7 @@
               
               <div class="flex-1 min-w-full max-w-full overflow-x-hidden" v-else>
                 <!-- <CharTest class="max-w-[1000px] max-h-[300px]"/> -->
-                <div  v-if="item.contentType != 'proc'" class="flex flex-col whitespace-pre-lines" style="max-width: calc(100% - 300px);">
+                <div  v-if="item.contentType != 'proc'" class="flex flex-col whitespace-pre-lines" style="max-width: 100%">
                   <MdPreview :modelValue="item.content" />
                 </div>
                 <!-- <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p> -->

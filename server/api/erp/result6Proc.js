@@ -32,12 +32,16 @@ export const send6Proc = async (writer, history, toMessage) => {
 
   console.log("query", queryObj)
 
-  if (queryObj.queryType === 'find') {
-    resultDataSet = await db.collection(queryObj.collection).find(queryObj.filter || {}, {
-      projection: queryObj.projection || {}
-    }).toArray();
-  } else if (queryObj.queryType === 'aggregate') {
-    resultDataSet = await db.collection(queryObj.collection).aggregate(queryObj.pipeline || []).toArray();
+  try {
+    if (queryObj.queryType === 'find') {
+      resultDataSet = await db.collection(queryObj.collection).find(queryObj.filter || {}, {
+        projection: queryObj.projection || {}
+      }).toArray();
+    } else if (queryObj.queryType === 'aggregate') {
+      resultDataSet = await db.collection(queryObj.collection).aggregate(queryObj.pipeline || []).toArray();
+    }
+  }catch(e){
+    console.log("## 몽코 디비 실행 오류 ", e)
   }
 
   formattedResult = resultDataSet;
@@ -68,16 +72,31 @@ export const send6Proc = async (writer, history, toMessage) => {
   // bedrock 스트림으로 결과 답변 요청 stream 실행
   await streamFallbackMessageJumpBedrock(writer, sendPrompt)
 
-  const sendResponseData = {
-    type: "chart",
-    data: formattedResult,
-    columns: [],
-    chartType: queryObj.visualization?.type || "",
-    title: queryObj.visualization?.title || '',
-    xField: queryObj.visualization?.xField,
-    yField: queryObj.visualization?.yField
-  };
+  let sendResponseData = null;
 
+  if(queryObj.visualization?.type != "table"){
+    sendResponseData = {
+      type: "chart",
+      data: formattedResult,
+      columns: [],
+      chartType: queryObj.visualization?.type || "",
+      title: queryObj.visualization?.title || '',
+      xField: queryObj.visualization?.xField,
+      yField: queryObj.visualization?.yField
+    }
+  }else{
+    try{
+      sendResponseData = {
+        type: "table",
+        data: formattedResult || [],
+        scenrios: 1,
+        columns: queryObj.visualization?.schema || [],
+        title: queryObj.visualization?.title || ''
+      }
+    }catch(e){
+      console.log(e)
+    }
+  }
 
   console.log("sendResponseData", sendResponseData)
 
