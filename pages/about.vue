@@ -19,11 +19,57 @@
       </div>
       <div class="min-h-[calc(100vh-280px)] flex gap-3">
         <!-- 전주 -->
-        <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
-          <h2 class="text-sm font-semibold mb-2">전주 주간보고</h2>
-          <editor-content v-if="editorLast" :editor="editorLast"
-            class="h-[calc(100vh-320px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
+       <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
+        <h2 class="text-sm font-semibold mb-2">전주 주간보고</h2>
+        <div class="flex-1 overflow-y-auto pr-2"> 
+          <n-card title="[개발]" size="small" class="w-full font-semibold text-xl mb-3" hoverable round style="font-weight: bold;">
+            <n-space vertical size="small">
+              <div class="">1. 분석 설계</div>
+              <n-space align ="center" justify="space-between">
+                <n-tag size="small"  type="info" round>기간: 2025-07-01 ~ 2025-07-15</n-tag>
+                <n-tag size="small"  type="error" round >진행률: 0%</n-tag>
+              </n-space>
+              <div class="text-gray-700">
+                - 분석 설계 문서를 작성하였습니다.<br/>
+                - 주요 기능에 대한 요구사항을 정리했습니다.<br/>
+                - 추가 검토가 필요합니다.<br/>
+                - 현황: 대기 업무<br/>
+              </div>
+            </n-space>
+          </n-card>
+          <n-card title="[개발]" size="small" class="w-full font-semibold text-xl mb-3" hoverable round style="font-weight: bold;">
+            <n-space vertical size="small">
+              <div class="">1. 분석 설계</div>
+              <n-space align ="center" justify="space-between">
+                <n-tag size="small"  type="info" round>기간: 2025-07-01 ~ 2025-07-15</n-tag>
+                <n-tag size="small"  type="error" round >진행률: 0%</n-tag>
+              </n-space>
+              <div class="text-gray-500">
+                - 분석 설계 문서를 작성하였습니다.<br/>
+                - 주요 기능에 대한 요구사항을 정리했습니다.<br/>
+                - 추가 검토가 필요합니다.<br/>
+                - 현황: 대기 업무<br/>
+              </div>
+            </n-space>
+          </n-card>
+
+          <n-card title="[개발]" size="small" class="w-full font-semibold text-xl mb-3" hoverable round style="font-weight: bold;">
+            <n-space vertical size="small">
+              <div class="">1. 분석 설계</div>
+              <n-space align ="center" justify="space-between">
+                <n-tag size="small"  type="info" round>기간: 2025-07-01 ~ 2025-07-15</n-tag>
+                <n-tag size="small"  type="error" round >진행률: 0%</n-tag>
+              </n-space>
+              <div class="text-gray-500">
+                - 분석 설계 문서를 작성하였습니다.<br/>
+                - 주요 기능에 대한 요구사항을 정리했습니다.<br/>
+                - 추가 검토가 필요합니다.<br/>
+                - 현황: 대기 업무<br/>
+              </div>
+            </n-space>
+          </n-card>
         </div>
+      </div>
         <!-- 금주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
           <h2 class="text-sm font-semibold mb-2">금주 주간보고</h2>
@@ -93,7 +139,12 @@
       </div>
       <textarea v-model="aiText" rows="4"
         class="mt-3 w-full resize-none rounded-lg bg-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none"
-        @input="autoResize" placeholder="AI에게 물어보세요..." :style="{ 'max-height': textareaMaxHeight + 'px' }" />
+        @input="autoResize" 
+        placeholder="AI에게 물어보세요..."
+        @keydown.enter.exact="submitAI"
+        @keydown.shift.enter.stop
+        :style="{ 'max-height': textareaMaxHeight + 'px' }" 
+        ></textarea>
       <!-- 보내기 버튼 (아이콘) -->
       <button @click="submitAI"
         class="absolute bottom-15 right-8 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700">
@@ -104,9 +155,39 @@
       </button>
     </div>
   </div>
+ <!-- <n-card title="운영 업무" size="large" class="w-full">
+    <n-space vertical size="large">
+     
+      <div class="text-xl font-semibold">1. 로그 모니터링</div>
+
+ 
+      <n-space align="left" justify="space-between">
+        <n-tag type="info" round>기간: 2025-07-01 ~ 2025-07-08</n-tag>
+        <n-tag type="success" round>진행률: 100%</n-tag>
+      </n-space>
+     
+   
+      <n-divider>상세 내용</n-divider>
+      <div class="text-gray-700">
+        로그 모니터링 시스템을 점검하였으며, 이상 징후는 발견되지 않았습니다.
+      </div>
+    </n-space>
+  </n-card> -->
+
 </template>
 
+
+<style scoped>
+</style>
+
+
+
 <script setup>
+
+defineProps({
+  category: String,
+  items: Array
+})
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
@@ -128,7 +209,7 @@ import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, lin
 // 할일데이터
 import { useWorkStore } from '~/stores/work';
 // 프롬프트 자료
-import { aboutSecenarios } from '~/server/templates/about_secenarios.js';
+import { aboutScenarios } from '~/utils/prompts/about_secenarios.js';
 
 const workStore = useWorkStore()
 const works = workStore.works
@@ -162,6 +243,35 @@ const editorNext = new Editor({
   extensions,
   content: '<p>차주 계획을 작성하세요...</p>',
 })
+
+const htmlContent = `
+  <div style="border:1px solid #e5e7eb; border-radius:8px; padding:16px;">
+    <div style="font-size:18px; font-weight:bold; margin-bottom:12px;">1. 로그 모니터링</div>
+
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+      <span style="background:#e0f2fe; padding:4px 8px; border-radius:8px; font-size:12px;">기간: 2025-07-01 ~ 2025-07-08</span>
+      <span style="background:#dcfce7; padding:4px 8px; border-radius:8px; font-size:12px;">진행률: 100%</span>
+    </div>
+
+    <div style="height: 6px; background: #dcfce7; border-radius:4px; margin-bottom:12px;">
+      <div style="width: 100%; height: 100%; background: #22c55e;"></div>
+    </div>
+
+    <hr />
+
+    <div style="margin-top:12px; font-size:14px; color:#374151;">
+      로그 모니터링 시스템을 점검하였으며, 이상 징후는 발견되지 않았습니다.
+    </div>
+  </div>
+`
+
+
+onMounted(() => {
+  if (editorLast) {
+    //editorLast.commands.setContent(htmlContent)
+  }
+})
+
 
 // 마운트 해제 시 destroy
 onBeforeUnmount(() => {
@@ -307,6 +417,7 @@ async function submitAI() {
     // .replace('{history}', history)
     // .replace('{toMessage}', toMessage)
   .replace('{today}', today)
+  .replace('{tasks}', JSON.stringify(thisWeekWorks))
  // .replace('{thisWeekWorks}', thisWeekWorks);
 
   prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
