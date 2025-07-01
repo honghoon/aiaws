@@ -7,13 +7,13 @@ let works = ref([
     id: 1,
     type: "개발",
     title:
-      "분석 설계 안녕하세요. 안녕하세요. 제목입니다. .. 으흐흐흐 하나 둘 셋 넷 다섯.. 여섯 . 으흐흐흐 하나 둘 셋 넷 다섯.. 여섯 . 으흐흐흐 하나 둘 셋 넷 다섯.. 여섯 ",
+      "그룹웨어 고도화 분석 및 설계",
     status: 1,      
     statusName: "대기 업무",    
     color: "infoColor",
     progress: 0,
-    startDate: "2025-07-01",
-    endDate: "2025-07-15",
+    startDate: "2025-06-27",
+    endDate: "2025-06-29",
     content: `<ul>
       <li>분석 설계 문서를 작성하였습니다.</li>
       <li>주요 기능에 대한 <b>요구사항</b>을 정리했습니다.</li>
@@ -28,8 +28,8 @@ let works = ref([
     statusName: "진행 중",
     color: "infoColorSuppl",
     progress: 20,
-    startDate: "2025-07-02",
-    endDate: "2025-07-03",
+    startDate: "2025-06-19",
+    endDate: "2025-06-26",
     content: `<p>신규 서비스 런칭을 위한 <b>기획 회의</b>를 진행하였습니다.</p>
       <p><u>참석자</u>: 홍길동, 김철수, 이영희</p>
       <ol>
@@ -74,8 +74,8 @@ let works = ref([
     statusName: "진행 중",    
     color: "infoColorSuppl",
     progress: 70,
-    startDate: "2025-07-05",
-    endDate: "2025-09-05",
+    startDate: "2025-06-23",
+    endDate: "2025-07-05",
     content: `<p>외부 시스템과의 <b>API 연동 개발</b>을 시작하였습니다.</p>
       <p>현재 <u>인증 방식</u> 협의 중입니다.</p>`,
   },

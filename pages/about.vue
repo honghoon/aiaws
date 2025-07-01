@@ -93,7 +93,12 @@
       </div>
       <textarea v-model="aiText" rows="4"
         class="mt-3 w-full resize-none rounded-lg bg-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none"
-        @input="autoResize" placeholder="AI에게 물어보세요..." :style="{ 'max-height': textareaMaxHeight + 'px' }" />
+        @input="autoResize" 
+        placeholder="AI에게 물어보세요..."
+        @keydown.enter.exact="submitAI"
+        @keydown.shift.enter.stop
+        :style="{ 'max-height': textareaMaxHeight + 'px' }" 
+        ></textarea>
       <!-- 보내기 버튼 (아이콘) -->
       <button @click="submitAI"
         class="absolute bottom-15 right-8 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700">
@@ -124,6 +129,16 @@ import { NButton } from 'naive-ui'
 import { IonIcon } from '@ionic/vue'
 import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, linkOutline } from 'ionicons/icons'
 
+
+// 할일데이터
+import { useWorkStore } from '~/stores/work';
+// 프롬프트 자료
+import { aboutSecenarios } from '~/server/templates/about_secenarios.js';
+
+const workStore = useWorkStore()
+const works = workStore.works
+
+
 const extensions = [
   StarterKit.configure({
     bulletList: { keepMarks: true },
@@ -143,7 +158,15 @@ const editorLast = new Editor({
   extensions,
   content: '<p>전주 업무 내용을 작성하세요...</p>',
   editable: false, // 읽기 전용
-})
+});
+
+editorLast.commands.insertContent('[개발]<br/>');
+editorLast.commands.insertContent('1.<br/>');
+editorLast.commands.insertContent('추가할 문자열입니다.<br/>');
+editorLast.commands.insertContent('추가할 문자열입니다.<br/>');
+editorLast.commands.insertContent('추가할 문자열입니다.<br/>');
+
+editorLast.im
 const editorThis = new Editor({
   extensions,
   content: '<p>금주 업무 내용을 작성하세요...</p>',
@@ -293,12 +316,13 @@ async function submitAI() {
 
 
   // 금주 주간보고
-  let messages = aboutScenarios
+  let messages = aboutSecenarios
     // .replace('{history}', history)
     // .replace('{toMessage}', toMessage)
-  .replace('{today}', today).replace('{thisWeekWorks}', thisWeekWorks);
+  .replace('{today}', today)
+ // .replace('{thisWeekWorks}', thisWeekWorks);
 
-  prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
+  prompt.push({"role": "user", "content": "\n\n업무목록:" +  messages + thisWeekWorks});
 
 
   let res = await fetch('/api/bedrock-common', {
