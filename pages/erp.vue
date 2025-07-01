@@ -48,6 +48,12 @@
                   />
                 </div>
 
+                <div v-if="item.contentType === 'chart'" class="flex w-full" style="max-width: 100%;">
+                  <ComChart 
+                    :data="item.data"
+                  />
+                </div>
+
                 
 
                 <div v-if="item.contentType === 'createTemplate'">
@@ -127,6 +133,7 @@ import CharTest from './chartTest.vue'
 import { NTag } from 'naive-ui'
 import { createColumns } from '~/utils/tableUtils'
 import ComTable from '~/utils/comTable.vue'
+import ComChart from '~/utils/comChart.vue'
 import dynamicForm from '~/utils/dynamicForm.vue' 
 import MarkdownIt from 'markdown-it'
 
@@ -466,6 +473,11 @@ const send_chat = async() =>{
           aiResult.value[aiResult.value.length - 1].title = tableRowData.title
           aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema
           aiResult.value[aiResult.value.length - 1].modelValue = tableRowData.modelValue
+        }
+
+        if (tableRowData.type == 'chart'){
+          aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type
+          aiResult.value[aiResult.value.length - 1].data = tableRowData
         }
         
         aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));

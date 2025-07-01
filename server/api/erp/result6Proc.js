@@ -1,5 +1,6 @@
 import { sendClaudeResponseInvoke } from  '~/server/utils/bedrock_invoke';
 import { sales_order_select} from '~/server/templates/sales_order_select.js';
+import { sales_order_select_end} from '~/server/templates/sales_order_select_end.js';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
@@ -39,6 +40,9 @@ export const send6Proc = async (writer, history, toMessage) => {
 
   formattedResult = resultDataSet;
 
+  console.log("분석 쿼리 실행 결과 Mongo DB Result Set: ", formattedResult)
+  console.log("기준 쿼리 정보", queryObj)
+
   if (!formattedResult || formattedResult.length === 0) {
     await streamFallbackMessageJump(writer, messgageKey);
     await streamFallbackMessageJump(writer, '데이터가 존재하지 않습니다.\n');
@@ -47,18 +51,33 @@ export const send6Proc = async (writer, history, toMessage) => {
     return;
   }
 
+  messages = sales_order_select_end
+          .replace('{history}', history)
+          .replace('{toMessage}', toMessage)
+          .replace('{today}', today)
+          .replace('{results}', JSON.stringify(formattedResult, null, 2));
+  
+
+  console.log(messages)
+
+  sendPrompt = [{"role": "user", "content" : messages}]
+
+  await streamFallbackMessageJump(writer, messgageKey)
+  // bedrock 스트림으로 결과 답변 요청 stream 실행
+  await streamFallbackMessageJumpBedrock(writer, sendPrompt)
+
   const sendResponseData = {
-    type: queryObj.visualization?.type || 'table',
+    type: "chart",
     data: formattedResult,
     columns: [],
+    chartType: queryObj.visualization?.type || "",
     title: queryObj.visualization?.title || '',
     xField: queryObj.visualization?.xField,
     yField: queryObj.visualization?.yField
   };
 
 
-
-
+  console.log("sendResponseData", sendResponseData)
 
   await streamFallbackMessageJump(writer, jsonKey)
   await streamFallbackMessageJump(writer, JSON.stringify(sendResponseData))
@@ -69,15 +88,41 @@ export const send6Proc = async (writer, history, toMessage) => {
 }
 
 function parseMongoQueryFromText(queryText) {
+  console.log("=== 쿼리 파서 시작 ===");
+
   try {
-    // ISODate → new Date 변환
-    let sanitized = queryText.replace(/ISODate\((.*?)\)/g, 'new Date($1)');
+    // 1단계: ISODate(...) / new Date(...) → "yyyy-mm-dd"
+    const cleaned = queryText
+      .replace(/\/\/.*$/gm, '') // 한 줄 주석 제거
+      .replace(/\/\*[\s\S]*?\*\//g, '') // 멀티라인 주석 제거
+      .replace(/(ISODate|new Date)\(\s*["'](.*?)["']\s*\)/g, '"$2"'); // 날짜 표현을 문자열로 변환
 
-    // // 주석 제거
-    sanitized = sanitized.replace(/\/\/.*$/gm, '');
+    // 2단계: 문자열로 JSON 파싱
+    const parsed = JSON.parse(cleaned);
 
-    const fn = new Function(`return (${sanitized});`);
-    return fn();
+    // 3단계: 모든 객체를 순회하며 ISO date string을 Date 객체로 재변환
+    const convertDates = (obj) => {
+      if (Array.isArray(obj)) {
+        return obj.map(convertDates);
+      } else if (obj && typeof obj === 'object') {
+        for (const key in obj) {
+          if (typeof obj[key] === 'string' && /^\d{4}-\d{2}-\d{2}T?\d{0,2}:?\d{0,2}?:?\d{0,2}?(\.\d+)?Z?$/.test(obj[key])) {
+            const date = new Date(obj[key]);
+            if (!isNaN(date.getTime())) {
+              obj[key] = date;
+            }
+          } else if (typeof obj[key] === 'object') {
+            obj[key] = convertDates(obj[key]);
+          }
+        }
+      }
+      return obj;
+    };
+
+    const final = convertDates(parsed);
+    console.log("✅ 구조 확인용 JSON:", JSON.stringify(parsed, null, 2));
+    return final;
+
   } catch (e) {
     console.error('⚠️ MongoDB 쿼리 파싱 실패:', e.message);
     return {};

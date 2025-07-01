@@ -71,6 +71,7 @@ export default defineEventHandler(async (event) => {
     return;
   }
 
+  console.log(`========= 의도 분석 인입 시나리오 ========== [" + ${result} + "]`) 
   if (result === 1) {
     await send1Proc(writer, history, toMessage);
     return

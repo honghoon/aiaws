@@ -152,18 +152,47 @@ const corporate_cardsColumns = [
 ]
 
 function parseMongoQueryFromText(queryText) {
-  try {
-    // ISODate("...") → "..." 로 치환
-    const cleaned = queryText
-      .replace(/ISODate\("(.*?)"\)/g, '"$1"')   // ISODate 제거 → 문자열 처리
-      .replace(/\/\/.*$/gm, '');                // 주석 제거
+  console.log("=== 쿼리 파서 시작 ===");
 
-    return JSON.parse(cleaned);
+  try {
+    // 1단계: ISODate(...) / new Date(...) → "yyyy-mm-dd"
+    const cleaned = queryText
+      .replace(/\/\/.*$/gm, '') // 한 줄 주석 제거
+      .replace(/\/\*[\s\S]*?\*\//g, '') // 멀티라인 주석 제거
+      .replace(/(ISODate|new Date)\(\s*["'](.*?)["']\s*\)/g, '"$2"'); // 날짜 표현을 문자열로 변환
+
+    // 2단계: 문자열로 JSON 파싱
+    const parsed = JSON.parse(cleaned);
+
+    // 3단계: 모든 객체를 순회하며 ISO date string을 Date 객체로 재변환
+    const convertDates = (obj) => {
+      if (Array.isArray(obj)) {
+        return obj.map(convertDates);
+      } else if (obj && typeof obj === 'object') {
+        for (const key in obj) {
+          if (typeof obj[key] === 'string' && /^\d{4}-\d{2}-\d{2}T?\d{0,2}:?\d{0,2}?:?\d{0,2}?(\.\d+)?Z?$/.test(obj[key])) {
+            const date = new Date(obj[key]);
+            if (!isNaN(date.getTime())) {
+              obj[key] = date;
+            }
+          } else if (typeof obj[key] === 'object') {
+            obj[key] = convertDates(obj[key]);
+          }
+        }
+      }
+      return obj;
+    };
+
+    const final = convertDates(parsed);
+    console.log("✅ 최종 파싱 결과:", final);
+    return final;
+
   } catch (e) {
     console.error('⚠️ MongoDB 쿼리 파싱 실패:', e.message);
     return {};
   }
 }
+
 
 function formatDate(date) {
   return date.toISOString().split('T')[0]; // yyyy-mm-dd
