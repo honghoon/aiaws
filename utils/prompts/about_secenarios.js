@@ -49,5 +49,5 @@ export const aboutScenarios = `
       추가 검토가 필요합니다. 
 
 [출력형식]
-모던하게 HTML 형식으로 작성해줘 
+모던하게 HTML 형식으로 작성해줘   
 `
