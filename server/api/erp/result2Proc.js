@@ -33,7 +33,7 @@ export const send2Proc = async (writer, history, toMessage) => {
         await streamFallbackMessageJump(writer, prockey)
         await streamFallbackMessageJump(writer, '데이터를 조회하고 있습니다.\n')
 
-        resultDataSet = await db.collection('corporate_cards').find(queryObj.query).toArray();
+        resultDataSet = await db.collection('corporate_cards_ko').find(queryObj.query).toArray();
 
         formattedResult = resultDataSet.map(doc => ({
         ...doc,
@@ -45,7 +45,7 @@ export const send2Proc = async (writer, history, toMessage) => {
         }));
 
         console.log(resultDataSet)
-        resultDataCount = await db.collection('corporate_cards').countDocuments(queryObj.count);
+        resultDataCount = await db.collection('corporate_cards_ko').countDocuments(queryObj.count);
         console.log(resultDataCount)
     }
 
@@ -126,9 +126,13 @@ const corporate_cardsColumns = [
     optionLabel: 'name',
     optionValue: 'code',
     options: [
-      { name: '사원', code: 'staff' },
-      { name: '대리', code: 'assistant' },
-      { name: '과장', code: 'manager' }
+      { name: '복리후생비(운영비)', code: '50000000' },
+      { name: '복리후생비(특근식대)', code: '50000001' },
+      { name: '여비교통비(시내,외)', code: '50000002' },
+      { name: '프로젝트영업제안비', code: '50000003' },
+      { name: '영업활동비(기타)', code: '50000004' },
+      { name: '교육훈련비', code: '50000004' },
+      { name: '광고선전비', code: '50000005' }
     ]
   },
   {
@@ -139,9 +143,23 @@ const corporate_cardsColumns = [
     optionLabel: 'name',
     optionValue: 'code',
     options: [
-      { name: '사원', code: 'staff' },
-      { name: '대리', code: 'assistant' },
-      { name: '과장', code: 'manager' }
+      { name: 'CEO', code: '10000' },
+      { name: '임원', code: '10001' },
+      { name: '전사공통', code: '10002' },
+      { name: '기획팀', code: '11000' },
+      { name: '전략팀', code: '11001' },
+      { name: '인사팀', code: '11002' },
+      { name: 'ERP1사업본부', code: '12000' },
+      { name: 'ERP2사업본부', code: '12001' },
+      { name: 'ERP3사업본부', code: '12002' },
+      { name: '모빌리티사업본부', code: '12003' },
+      { name: '클라우드사업본부', code: '12004' },
+      { name: '클라우드서비스팀', code: '12100' },
+      { name: '클라우드기술팀', code: '12101' },
+      { name: '클라우드전략고객팀', code: '12102' },
+      { name: 'MS서비스팀', code: '12103' },
+      { name: 'CIT사업본부', code: '12005' },
+      { name: 'VC사업본부', code: '12006' }
     ]
   },
   {

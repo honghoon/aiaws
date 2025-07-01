@@ -14,7 +14,7 @@
               size="small" 
               strong 
               secondary 
-              @click="onClickSend"
+              @click="showModal = true"
             >
               전송
             </n-button>
@@ -23,7 +23,7 @@
           :bordered="true"
           :columns="tableColumns" 
           :data="tableRowData" 
-          :pagination="pagination" 
+          :pagination="pagination"
           table-layout="fixed"
           :sticky-expanded-rows="true"
           :flex-height="true"
@@ -33,8 +33,19 @@
         />
       </div>
     </n-space>
+    <n-modal
+    v-model:show="showModal"
+    :mask-closable="false"
+    preset="dialog"
+    title="전표상신"
+    content="전표를 상신하시겠습니까?"
+    positive-text="확인"
+    negative-text="취소"
+    @positive-click="onPositiveClick(tableRowData)"
+    @negative-click="onNegativeClick()"
+  />
+
   </n-card>
-  
 </template>
 
 <script setup>
@@ -66,6 +77,8 @@ const props = defineProps({
     default: undefined
   }
 })
+
+
 
 // ✅ 페이지네이션 설정
 const pagination = reactive({
@@ -102,5 +115,40 @@ onMounted(() => {
     processColumns(props.columns)
   }
 })
+
+// 전송 버튼 호출시 처리
+// 테이블에 구성된 데이터를 처리한다.
+// 구성된 데이터 외부 API 처리 후 결과 전송받에 화면에 표시
+const onClickSend = (tableRowData) => {
+  console.log(tableRowData);
+
+  // 데이터를 전달하고 결과를 받아 화면 창에 표시
+  alert('test');
+  
+
+};
+
+// 결과 모달창 설정
+const showModal = ref(false)
+
+const onPositiveClick = (tableRowData) => {
+  console.log(tableRowData[0].amount);
+  showModal.value = false;
+
+  // 데이터를 전달하고 결과를 받아 화면 창에 표시
+
+};
+
+const onNegativeClick = () => {
+  console.log("취소합니다.");
+  showModal.value = false;
+
+  // 데이터를 전달하고 결과를 받아 화면 창에 표시
+
+};
+
+
+
+
 
 </script>

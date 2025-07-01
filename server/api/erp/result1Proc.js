@@ -32,7 +32,7 @@ export const send1Proc = async (writer, history, toMessage) => {
         await streamFallbackMessageJump(writer, prockey)
         await streamFallbackMessageJump(writer, '데이터를 조회하고 있습니다.\n')
 
-        resultDataSet = await db.collection('corporate_cards').find(queryObj.query).toArray();
+        resultDataSet = await db.collection('corporate_cards_ko').find(queryObj.query).toArray();
 
         formattedResult = resultDataSet.map(doc => ({
         ...doc,
@@ -44,7 +44,7 @@ export const send1Proc = async (writer, history, toMessage) => {
         }));
 
         console.log(resultDataSet)
-        resultDataCount = await db.collection('corporate_cards').countDocuments(queryObj.count);
+        resultDataCount = await db.collection('corporate_cards_ko').countDocuments(queryObj.count);
         console.log(resultDataCount)
     }
 
