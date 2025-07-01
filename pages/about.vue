@@ -162,6 +162,228 @@ onBeforeUnmount(() => {
 
 const textareaMaxHeight = 100;
 const aiText = ref("")
+const aiResult = ref([])
+const loading = ref(false);
+const today = new Date().toISOString().split('T')[0]; // "2025-06-26"
+const keywords = ["운영", "기획", "개발", "완료", "테스트"];
+const pattern = new RegExp(`\\[(${keywords.join("|")})\\]`, "g");
+
+
+// 유틸: 해당 날짜가 이번 주인지 확인
+// function isThisWeek(dateStr) {
+//   const todays= new Date();
+//   const inputDate = new Date(dateStr);
+//   const dayOfWeek = todays.getDay(); // 0(일) ~ 6(토)
+  
+//   const startOfWeek = new Date(todays);
+//   startOfWeek.setDate(todays.getDate() - dayOfWeek); // 일요일
+//   const endOfWeek = new Date(startOfWeek);
+//   endOfWeek.setDate(startOfWeek.getDate() + 6); // 토요일
+
+//   return inputDate >= startOfWeek && inputDate <= endOfWeek;
+// }
+
+
+
+async function callBedRock() {
+
+
+}
+
+
+/** 제출 처리 **/
+async function submitAI() {
+
+  if (!aiText.value.trim() || loading.value) return;
+
+  // aiResult.value.push({
+  //   type: 'user',
+  //   contentType: 'text',
+  //   content: aiText.value
+  // })
+
+  // aiText.value = "";
+
+  // aiResult.value.push({
+  //   type: 'system',
+  //   contentType: 'text',
+  //   content: "AI 응답을 기다리는 중...",
+  //   proc: true
+  // })
+  
+  // for(let item of aiResult.value){
+  //   if(item.proc == undefined){
+  //     if (item.type === "user"){
+  //       prompt.push({"role": "user", "content" : item.content})
+  //     }
+  //     if (item.type === "system"){
+  //       prompt.push({"role": "assistant", "content" : item.content})
+  //     }
+  //   }
+  // }
+
+  let prompt = []
+
+  // 업무 요약 텍스트로 변환 (HTML 제거 포함)
+  // const worksSummary = works
+  //     .filter(work =>
+  //             isThisWeek(work.startDate) || isThisWeek(work.endDate)
+  //     )
+  //     .map((work, idx) => {
+  //       const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  //       return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+  //     })
+  //     .join("\n\n");
+
+  //  const worksSummary = works.map((work, idx) => {
+  //       const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  //       return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+  //     })
+  //     .join("\n\n");
+
+  
+
+  // 오늘 날짜 기준
+  const todayDate = new Date();
+
+  // 이번 주 월요일
+  const thisWeekStart = new Date(todayDate);
+  const day = thisWeekStart.getDay(); // 0:일 ~ 6:토
+  const diffToMonday = (day + 6) % 7; // 월요일까지의 차이 계산
+  thisWeekStart.setDate(thisWeekStart.getDate() - diffToMonday);
+
+  // 지난 주 월요일
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+  // 다음 주 월요일
+  const nextWeekStart = new Date(thisWeekStart);
+  nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+
+  // 각 주간 종료일 (일요일)
+  const thisWeekEnd = new Date(thisWeekStart);
+  thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+
+ // const lastWeekEnd = new Date(lastWeekStart);
+  //lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+
+  const nextWeekEnd = new Date(nextWeekStart);
+  nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+
+  // 날짜 비교 함수
+  const isWithin = (dateStr, start, end) => {
+    const date = new Date(dateStr);
+    return date >= start && date <= end;
+  };
+
+  // 주간 필터링
+  //const lastWeekWorks = works.filter(work => isWithin(work.startDate, lastWeekStart, lastWeekEnd));
+  const thisWeekWorks = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
+                  .map((work, idx) => {
+                  const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                  return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+                })
+                .join("\n\n");
+  const nextWeekWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd))  .map((work, idx) => {
+                        const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                        return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+                      })
+                      .join("\n\n");
+
+
+
+  // 금주 주간보고
+  let messages = aboutScenarios
+    // .replace('{history}', history)
+    // .replace('{toMessage}', toMessage)
+  .replace('{today}', today).replace('{thisWeekWorks}', thisWeekWorks);
+
+  prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
+
+
+  let res = await fetch('/api/bedrock-common', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(prompt),
+  });
+
+  let reader = res.body?.getReader();
+  let decoder = new TextDecoder();
+
+  if (!reader) {
+    loading.value = false;
+    return;
+  }
+
+  try {
+    let fullContent = ''; // 누적할 변수
+
+    while (true) {
+      let { done, value } = await reader.read();
+      if (done) break;
+      let chunk = decoder.decode(value);
+
+      // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
+      //chunk = chunk.replace(/(\d+)\.\s*/g, '\n$1. ');
+      //chunk = chunk.replace(pattern, '\n[$1]');
+
+      fullContent += chunk;
+    }
+    editorThis.commands.setContent(fullContent);
+ 
+  } finally {
+    loading.value = false;
+  }
+
+
+  // 차주 주간보고
+  messages = aboutScenarios
+    // .replace('{history}', history)
+    // .replace('{toMessage}', toMessage)
+    .replace('{today}', today);
+
+
+  prompt = [];
+  prompt.push({"role": "user", "content": "\n\n업무목록:" + nextWeekWorks + messages });
+
+
+  res = await fetch('/api/bedrock-common', {
+  //res = await fetch('/api/bedrock-stream', {  
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(prompt),
+  });
+
+  reader = res.body?.getReader();
+  decoder = new TextDecoder();
+
+  if (!reader) {
+    loading.value = false;
+    return;
+  }
+
+  try {
+    let fullContent = ''; // 누적할 변수
+
+    while (true) {
+      let { done, value } = await reader.read();
+      if (done) break;
+      let chunk1 = decoder.decode(value);
+
+      // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
+      //chunk = chunk.replace(/(\d+\.\s)/g, '\n$1');
+      //chunk = chunk.replace(pattern, '\n[$1]');
+
+      fullContent += chunk1;
+
+    }
+    editorNext.commands.setContent(fullContent);
+ 
+  } finally {
+    loading.value = false;
+  }
+
+}
 </script>
 
 <style>
