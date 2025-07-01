@@ -124,6 +124,16 @@ import { NButton } from 'naive-ui'
 import { IonIcon } from '@ionic/vue'
 import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, linkOutline } from 'ionicons/icons'
 
+
+// 할일데이터
+import { useWorkStore } from '~/stores/work';
+// 프롬프트 자료
+import { aboutSecenarios } from '~/server/templates/about_secenarios.js';
+
+const workStore = useWorkStore()
+const works = workStore.works
+
+
 const extensions = [
   StarterKit.configure({
     bulletList: { keepMarks: true },
@@ -296,7 +306,8 @@ async function submitAI() {
   let messages = aboutScenarios
     // .replace('{history}', history)
     // .replace('{toMessage}', toMessage)
-  .replace('{today}', today).replace('{thisWeekWorks}', thisWeekWorks);
+  .replace('{today}', today)
+ // .replace('{thisWeekWorks}', thisWeekWorks);
 
   prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
 
