@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-          "type": "pwa-node", // 최신 VSCode 디버거 (기본 권장)
+          "type": "node", // 최신 VSCode 디버거 (기본 권장)
           "request": "launch",
           "name": "Nuxt 3 Debug (Cross-platform)",
           "runtimeExecutable": "npm",
@@ -13,7 +13,7 @@
           "cwd": "${workspaceFolder}",
           "autoAttachChildProcesses": true,
           "skipFiles": ["<node_internals>/**"],
-          "console": "internalConsole" // 필요 시 변경 가능: "internalConsole", "externalTerminal"
+          "console": "integratedTerminal" // 필요 시 변경 가능: "internalConsole", "externalTerminal"
         },
         {
             "type": "chrome",
