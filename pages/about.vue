@@ -69,6 +69,7 @@
             </n-space>
           </n-card>
         </div>
+      
       </div>
         <!-- 금주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
@@ -137,6 +138,27 @@
             class="h-[calc(100vh-350px)] overflow-y-auto flex max-h-full p-3 rounded bg-white" />
         </div>
       </div>
+      <br/>
+      <!-- 주간보고 수정 체크 -->
+      <n-space>
+        <n-radio
+          :checked="checkedValue === 'thisweek'"
+          value="thisweek"
+          name="basic-demo"
+          @change="handleChange"
+        >
+          금주
+        </n-radio>
+        <n-radio
+          :checked="checkedValue === 'nextweek'"
+          value="nextweek"
+          name="basic-demo"
+          @change="handleChange"
+        >
+         차주
+        </n-radio>
+      </n-space>
+
       <textarea v-model="aiText" rows="4"
         class="mt-3 w-full resize-none rounded-lg bg-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none"
         @input="autoResize" 
@@ -188,7 +210,7 @@ defineProps({
   category: String,
   items: Array
 })
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, defineComponent} from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import TextStyle from '@tiptap/extension-text-style'
@@ -209,11 +231,19 @@ import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, lin
 // 할일데이터
 import { useWorkStore } from '~/stores/work';
 // 프롬프트 자료
-import { aboutScenarios } from '~/utils/prompts/about_secenarios.js';
+import { aboutScenarios, aboutUpdateScenarios } from '~/utils/prompts/about_secenarios.js';
 
 const workStore = useWorkStore()
 const works = workStore.works
 
+// 수정할 주간보고 값
+const checkedValue = ref('')  // 기본값 설정
+function handleChange(e) {
+  checkedValue.value = e.target.value
+  console.log('선택된 값:', checkedValue.value)
+}
+
+console.log(checkedValue.value)
 
 const extensions = [
   StarterKit.configure({
@@ -229,12 +259,6 @@ const extensions = [
   Link,
 ]
 
-// 각 주간 보고 에디터
-const editorLast = new Editor({
-  extensions,
-  content: '<p>전주 업무 내용을 작성하세요...</p>',
-  editable: false, // 읽기 전용
-})
 const editorThis = new Editor({
   extensions,
   content: '<p>금주 업무 내용을 작성하세요...</p>',
@@ -244,71 +268,82 @@ const editorNext = new Editor({
   content: '<p>차주 계획을 작성하세요...</p>',
 })
 
-const htmlContent = `
-  <div style="border:1px solid #e5e7eb; border-radius:8px; padding:16px;">
-    <div style="font-size:18px; font-weight:bold; margin-bottom:12px;">1. 로그 모니터링</div>
-
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-      <span style="background:#e0f2fe; padding:4px 8px; border-radius:8px; font-size:12px;">기간: 2025-07-01 ~ 2025-07-08</span>
-      <span style="background:#dcfce7; padding:4px 8px; border-radius:8px; font-size:12px;">진행률: 100%</span>
-    </div>
-
-    <div style="height: 6px; background: #dcfce7; border-radius:4px; margin-bottom:12px;">
-      <div style="width: 100%; height: 100%; background: #22c55e;"></div>
-    </div>
-
-    <hr />
-
-    <div style="margin-top:12px; font-size:14px; color:#374151;">
-      로그 모니터링 시스템을 점검하였으며, 이상 징후는 발견되지 않았습니다.
-    </div>
-  </div>
-`
-
-
-onMounted(() => {
-  if (editorLast) {
-    //editorLast.commands.setContent(htmlContent)
-  }
-})
-
 
 // 마운트 해제 시 destroy
 onBeforeUnmount(() => {
-  editorLast.destroy()
+ 
   editorThis.destroy()
   editorNext.destroy()
 })
 
 const textareaMaxHeight = 100;
 const aiText = ref("")
-const aiResult = ref([])
+//const aiResult = ref([])
 const loading = ref(false);
 const today = new Date().toISOString().split('T')[0]; // "2025-06-26"
 const keywords = ["운영", "기획", "개발", "완료", "테스트"];
 const pattern = new RegExp(`\\[(${keywords.join("|")})\\]`, "g");
 
+// 오늘 날짜 기준
+const todayDate = new Date();
 
-// 유틸: 해당 날짜가 이번 주인지 확인
-// function isThisWeek(dateStr) {
-//   const todays= new Date();
-//   const inputDate = new Date(dateStr);
-//   const dayOfWeek = todays.getDay(); // 0(일) ~ 6(토)
-  
-//   const startOfWeek = new Date(todays);
-//   startOfWeek.setDate(todays.getDate() - dayOfWeek); // 일요일
-//   const endOfWeek = new Date(startOfWeek);
-//   endOfWeek.setDate(startOfWeek.getDate() + 6); // 토요일
+// 이번 주 월요일
+const thisWeekStart = new Date(todayDate);
+const day = thisWeekStart.getDay(); // 0:일 ~ 6:토
+const diffToMonday = (day + 6) % 7; // 월요일까지의 차이 계산
+thisWeekStart.setDate(thisWeekStart.getDate() - diffToMonday);
 
-//   return inputDate >= startOfWeek && inputDate <= endOfWeek;
-// }
+// 지난 주 월요일
+const lastWeekStart = new Date(thisWeekStart);
+lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
+// 다음 주 월요일
+const nextWeekStart = new Date(thisWeekStart);
+nextWeekStart.setDate(nextWeekStart.getDate() + 7);
 
+// 각 주간 종료일 (일요일)
+const thisWeekEnd = new Date(thisWeekStart);
+thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
 
-async function callBedRock() {
+// const lastWeekEnd = new Date(lastWeekStart);
+//lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
 
+const nextWeekEnd = new Date(nextWeekStart);
+nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
 
+// 날짜 비교 함수
+const isWithin = (dateStr, start, end) => {
+  const date = new Date(dateStr);
+  return date >= start && date <= end;
+};
+
+function extractSummaryFromHTML(html) {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+
+  const blocks = tempDiv.querySelectorAll("strong, p");
+  let summary = "";
+  let section = "";
+
+  blocks.forEach((el) => {
+    const text = el.innerText.trim();
+    if (!text) return;
+
+    if (text.startsWith("[")) {
+      // 유형 구분
+      section += `\n${text}\n`;
+    } else if (/^\d+\./.test(text)) {
+      section += `${text}\n`;
+    } else {
+      section += `${text}\n`;
+    }
+  });
+
+  summary += section.trim();
+
+  return summary;
 }
+
 
 
 /** 제출 처리 **/
@@ -316,195 +351,202 @@ async function submitAI() {
 
   if (!aiText.value.trim() || loading.value) return;
 
-  // aiResult.value.push({
-  //   type: 'user',
-  //   contentType: 'text',
-  //   content: aiText.value
-  // })
-
-  // aiText.value = "";
-
-  // aiResult.value.push({
-  //   type: 'system',
-  //   contentType: 'text',
-  //   content: "AI 응답을 기다리는 중...",
-  //   proc: true
-  // })
-  
-  // for(let item of aiResult.value){
-  //   if(item.proc == undefined){
-  //     if (item.type === "user"){
-  //       prompt.push({"role": "user", "content" : item.content})
-  //     }
-  //     if (item.type === "system"){
-  //       prompt.push({"role": "assistant", "content" : item.content})
-  //     }
-  //   }
-  // }
-
   let prompt = []
 
-  // 업무 요약 텍스트로 변환 (HTML 제거 포함)
-  // const worksSummary = works
-  //     .filter(work =>
-  //             isThisWeek(work.startDate) || isThisWeek(work.endDate)
-  //     )
-  //     .map((work, idx) => {
-  //       const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  //       return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-  //     })
-  //     .join("\n\n");
+  
+  if(aiText.value.indexOf('수정') != -1 || aiText.value.indexOf('변경') != -1){ // 금주가 아니면?
+      if(!checkedValue.value.trim()){
+         alert("수정할 주간보고를 선택해주세요");
+         return;
+      }
+      let summarizedText = '';
+      if(checkedValue.value == 'thisweek'){
+         // 주간 필터링
+          // updateWorks= updateWorks.map((work, idx) => {
+          //               const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          //               return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+          //             })
+          //             .join("\n\n");
+          if(editorThis.getHTML().indexOf('금주 업무 내용을 작성하세요') != -1){
+            alert("금주 작성된 주간보고가 없습니다");
+            return 
+          }
+          //textContent = editorThis.getHTML().replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
-  //  const worksSummary = works.map((work, idx) => {
-  //       const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  //       return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-  //     })
-  //     .join("\n\n");
+         let textContent = editorThis.getHTML();
+         summarizedText = extractSummaryFromHTML(textContent);
+     
+
+         
+      }else{
+          // updateWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd))  .map((work, idx) => {
+          //                     const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          //                     return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+          //                   })
+          //                   .join("\n\n");
+          // }
+          if(editorNext.getHTML().indexOf('차주 계획을 작성하세요') != -1){
+            alert("차주 작성된 주간보고가 없습니다");
+            return 
+          }
+          textContent = editorNext.getHTML().replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+         
+      }
+       
+
+      const thisWeekWorks2 = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
+            .map((work, idx) => {
+              const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+      })
+      .join("\n\n");
+
+
+      // 금주 주간보고
+      let messages = aboutUpdateScenarios
+      .replace('{today}', today) 
+      .replace("{editor}", summarizedText)
+        .replace("{tasks}", JSON.stringify(thisWeekWorks2))
+         + `\n\n[사용자 요청]\n${aiText.value}`;
+
+      prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks2 + messages });
+      let res = await fetch('/api/bedrock-common', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prompt),
+      });
+
+      let reader = res.body?.getReader();
+      let decoder = new TextDecoder();
+
+      if (!reader) {
+        loading.value = false;
+        return;
+      }
+
+      try {
+        let fullContent = ''; // 누적할 변수
+        while (true) {
+          let { done, value } = await reader.read();
+          if (done) break;
+          let chunk = decoder.decode(value);
+          fullContent += chunk;
+        }
+        if(checkedValue.value == 'thisweek'){
+          editorThis.commands.setContent(fullContent);
+        }else{
+          editorNext.commands.setContent(fullContent);
+        }
 
   
-
-  // 오늘 날짜 기준
-  const todayDate = new Date();
-
-  // 이번 주 월요일
-  const thisWeekStart = new Date(todayDate);
-  const day = thisWeekStart.getDay(); // 0:일 ~ 6:토
-  const diffToMonday = (day + 6) % 7; // 월요일까지의 차이 계산
-  thisWeekStart.setDate(thisWeekStart.getDate() - diffToMonday);
-
-  // 지난 주 월요일
-  const lastWeekStart = new Date(thisWeekStart);
-  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-
-  // 다음 주 월요일
-  const nextWeekStart = new Date(thisWeekStart);
-  nextWeekStart.setDate(nextWeekStart.getDate() + 7);
-
-  // 각 주간 종료일 (일요일)
-  const thisWeekEnd = new Date(thisWeekStart);
-  thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
-
- // const lastWeekEnd = new Date(lastWeekStart);
-  //lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
-
-  const nextWeekEnd = new Date(nextWeekStart);
-  nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
-
-  // 날짜 비교 함수
-  const isWithin = (dateStr, start, end) => {
-    const date = new Date(dateStr);
-    return date >= start && date <= end;
-  };
-
-  // 주간 필터링
-  //const lastWeekWorks = works.filter(work => isWithin(work.startDate, lastWeekStart, lastWeekEnd));
-  const thisWeekWorks = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
-                  .map((work, idx) => {
-                  const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                  return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-                })
-                .join("\n\n");
-  const nextWeekWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd))  .map((work, idx) => {
-                        const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                        return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-                      })
-                      .join("\n\n");
+      } finally {
+        loading.value = false;
+      }
+    }else{
+      // 주간 필터링
+      const thisWeekWorks = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
+                      .map((work, idx) => {
+                      const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                      return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+                    })
+                    .join("\n\n");
+      const nextWeekWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd))  .map((work, idx) => {
+                            const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                            return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+                          })
+                          .join("\n\n");
 
 
 
-  // 금주 주간보고
-  let messages = aboutScenarios
-    // .replace('{history}', history)
-    // .replace('{toMessage}', toMessage)
-  .replace('{today}', today)
-  .replace('{tasks}', JSON.stringify(thisWeekWorks))
- // .replace('{thisWeekWorks}', thisWeekWorks);
+      // 금주 주간보고
+      let messages = aboutScenarios
+      .replace('{today}', today) 
+      .replace('{tasks}', JSON.stringify(thisWeekWorks))
 
-  prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
+      prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
 
+  
+    let res = await fetch('/api/bedrock-common', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prompt),
+    });
 
-  let res = await fetch('/api/bedrock-common', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(prompt),
-  });
+    let reader = res.body?.getReader();
+    let decoder = new TextDecoder();
 
-  let reader = res.body?.getReader();
-  let decoder = new TextDecoder();
-
-  if (!reader) {
-    loading.value = false;
-    return;
-  }
-
-  try {
-    let fullContent = ''; // 누적할 변수
-
-    while (true) {
-      let { done, value } = await reader.read();
-      if (done) break;
-      let chunk = decoder.decode(value);
-
-      // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
-      //chunk = chunk.replace(/(\d+)\.\s*/g, '\n$1. ');
-      //chunk = chunk.replace(pattern, '\n[$1]');
-
-      fullContent += chunk;
+    if (!reader) {
+      loading.value = false;
+      return;
     }
-    editorThis.commands.setContent(fullContent);
- 
-  } finally {
-    loading.value = false;
-  }
 
+    try {
+      let fullContent = ''; // 누적할 변수
 
-  // 차주 주간보고
-  messages = aboutScenarios
-    // .replace('{history}', history)
-    // .replace('{toMessage}', toMessage)
-    .replace('{today}', today);
+      while (true) {
+        let { done, value } = await reader.read();
+        if (done) break;
+        let chunk = decoder.decode(value);
 
+        // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
+        //chunk = chunk.replace(/(\d+)\.\s*/g, '\n$1. ');
+        //chunk = chunk.replace(pattern, '\n[$1]');
 
-  prompt = [];
-  prompt.push({"role": "user", "content": "\n\n업무목록:" + nextWeekWorks + messages });
-
-
-  res = await fetch('/api/bedrock-common', {
-  //res = await fetch('/api/bedrock-stream', {  
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(prompt),
-  });
-
-  reader = res.body?.getReader();
-  decoder = new TextDecoder();
-
-  if (!reader) {
-    loading.value = false;
-    return;
-  }
-
-  try {
-    let fullContent = ''; // 누적할 변수
-
-    while (true) {
-      let { done, value } = await reader.read();
-      if (done) break;
-      let chunk1 = decoder.decode(value);
-
-      // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
-      //chunk = chunk.replace(/(\d+\.\s)/g, '\n$1');
-      //chunk = chunk.replace(pattern, '\n[$1]');
-
-      fullContent += chunk1;
-
+        fullContent += chunk;
+      }
+      editorThis.commands.setContent(fullContent);
+  
+    } finally {
+      loading.value = false;
     }
-    editorNext.commands.setContent(fullContent);
- 
-  } finally {
-    loading.value = false;
-  }
 
+
+    // 차주 주간보고
+    messages = aboutScenarios
+      .replace('{today}', today)
+      .replace('{tasks}', JSON.stringify(nextWeekWorks))
+
+
+    prompt = [];
+    prompt.push({"role": "user", "content": "\n\n업무목록:" + nextWeekWorks + messages });
+
+
+    res = await fetch('/api/bedrock-common', {
+    //res = await fetch('/api/bedrock-stream', {  
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prompt),
+    });
+
+    reader = res.body?.getReader();
+    decoder = new TextDecoder();
+
+    if (!reader) {
+      loading.value = false;
+      return;
+    }
+
+    try {
+      let fullContent = ''; // 누적할 변수
+
+      while (true) {
+        let { done, value } = await reader.read();
+        if (done) break;
+        let chunk1 = decoder.decode(value);
+
+        // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
+        //chunk = chunk.replace(/(\d+\.\s)/g, '\n$1');
+        //chunk = chunk.replace(pattern, '\n[$1]');
+
+        fullContent += chunk1;
+
+      }
+      editorNext.commands.setContent(fullContent);
+  
+    } finally {
+      loading.value = false;
+    }
+  }
 }
 </script>
 
