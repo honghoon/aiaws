@@ -54,6 +54,7 @@
 </template>
 
 <script setup>
+import { fileUploadScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
 import { ref, watch } from 'vue'
 import { useWorkStore } from '~/stores/work';
 
@@ -133,46 +134,7 @@ async function submitAI() {
   try {
     const reportsText = worksFile.value.map((text, idx) => `### 보고서 ${idx + 1}:\n${text.trim()}`).join('\n\n');
 
-    const fullPrompt = `
-      당신은 업무 보고를 작성하는 AI입니다. 아래의 보고서들을 각각 하나의 JSON 객체로 변환해 주세요.
-      각 보고서는 아래의 형식에 따라 작성되어야 합니다. 결과는 JSON 배열로 반환해야 합니다.
-
-      각 JSON 객체는 다음 형식을 따라야 합니다: 
-      {
-        "id": ${id}, //id부터 시작해서 순서대로 부여
-        "type": "개발",
-        "title": "업무내용 전체 또는 요약",
-        "status": 1, // "대기 업무"는 1 "해야할 일"은 2, "진행 중"은 3, "완료"는 4
-        "statusName": "보고서에 적힌 업무상태",
-        "color": "infoColor", // status 1이면 "infoColor", 2면 "warningColor", 3이면 "infoColorSuppl" 4이면 "successColor"
-        "progress": 0, // 상태에 따라 0 ~ 100
-        "startDate": "YYYY-MM-DD",
-        "endDate": "YYYY-MM-DD",
-        "content": "<ul><li>번호 항목들을 HTML 리스트로 표현</li></ul>"
-      }
-
-
-      📌 예시 응답:
-      [
-        {
-          "id": 13,
-          "type": "개발",
-          "title": "아마다 웰드 테크코리아 그룹웨어 구축",
-          "status": 3,
-          "statusName": "완료",
-          "color": "successColor",
-          "progress": 100,
-          "startDate": "2025-06-05",
-          "endDate": "2025-07-01",
-          "content": "<ul><li>전자결재 12종 개발 완료</li><li>비즈플레이 SSO 연동 개발 완료</li><li>pms SSO 연동 개발 완료</li></ul>"
-        },
-      ]
-      
-      ⚠️ 반드시 JSON만 출력해 주세요. 설명이나 머리말 없이 JSON 배열만 출력해야 합니다.
-
-      보고서 목록:
-      ${reportsText}
-      `.trim();
+    const fullPrompt = fileUploadScnarios(id, reportsText).trim();
 
     const prompt = [{ role: "user", content: fullPrompt }];
     
