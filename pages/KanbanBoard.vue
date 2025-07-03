@@ -59,8 +59,12 @@
               >
                 {{ work.title }}
               </p>
-
-              <div class="flex items-center justify-between pt-3 pb-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-normal text-slate-400">
+                  처리자: {{ work.users ? work.users.join(", ") : "없음" }}
+                </p>
+              </div>
+              <div class="flex items-center justify-between">
                 <p class="text-sm font-normal text-slate-400">
                   기간: {{ work.startDate }} ~ {{ work.endDate }} {{ work.procName ? work.procName : "" }}
                 </p>
@@ -109,6 +113,7 @@
       menu-trigger="click"
       v-model:show-menu="showMenu"
       class="z-50 transition overflow-visible"
+      @click="summaryCallAI(1)"
     >
       <n-icon>
         <text
@@ -125,7 +130,7 @@
       <template #menu>
         <!-- 하단 중앙 고정 입력창 (아이콘 버튼 포함) -->
         <div
-          class="fixed rounded-lg bottom-0 left-1/2 -translate-x-1/2 w-250 bg-white p-4 shadow-xl flex justify-center"
+          class="fixed rounded-lg bottom-0 left-1/2 -translate-x-1/2 w-250 bg-white p-4 shadow-xl flex justify-center" style="transform: translateX(-5%)"
         >
           <div class="relative w-250">
             <div
@@ -286,6 +291,89 @@
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </button>
+          </div>
+        </div>
+        <div
+          class="fixed rounded-lg bottom-0 left-2/2 -translate-x-2/2 w-100 bg-white p-4 shadow-xl flex flex-col justify-start h-[900px]"
+          style="transform: translateX(-20%)"
+        >
+          <!-- 상단 버튼 탭 (Naive UI n-button 사용) -->
+          <div class="flex justify-center space-x-6 mb-10 px-4" >
+            <n-button 
+              size="small"
+              ghost
+              type="primary"
+              :disabled="selectedTab === 'today'"
+              @click="selectedTab = 'today'"
+            >
+              오늘
+            </n-button>
+            <n-button
+              size="small"
+              ghost
+              type="primary"
+              :disabled="selectedTab === 'week'"
+              @click="selectedTab = 'week'"
+            >
+              금주
+            </n-button>
+          </div>
+
+          <!-- 본문 영역 (기존 내용 유지) -->
+          <div class="relative w-full flex-1">
+            <div
+              class="flex flex-col h-[800px] bg-slate-100/50 rounded-md text-sm text-slate-600 font-normal p-3"
+            >
+              <div
+                ref="resultBox"
+                class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto"
+              >
+                <div
+                  v-for="(item, index) in filteredAiResult"
+                  :key="index"
+                  class="flex flex-col items-start gap-3"
+                >
+                  <div
+                    class="flex justify-end w-full"
+                    v-if="item.type === 'user'"
+                  >
+                    <span
+                      class="inline-flex items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-normal text-slate-600 ring-1 ring-inset ring-gray-500/10 whitespace-pre-line block"
+                    >
+                      {{ item.content }}
+                    </span>
+                  </div>
+                  <div class="flex-1" v-else>
+                    <div v-if="item.contentType === 'text'">
+                      <div v-if="item.type === 'system'">
+                        <div v-if="item.answers?.length">
+                          <div
+                            v-for="(ans, i) in item.answers"
+                            :key="i"
+                            class="rounded-xl border border-slate-200 bg-gray-50 p-4 mb-3 shadow-sm"
+                          >
+                            <div class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                              {{ ans.content }}
+                            </div>
+
+                            <div class="mt-3 text-right">
+                              <n-button size="small" ghost type="primary" @click="openAnsSelectItem(ans.work.id)">
+                                상세보기
+                              </n-button>
+                            </div>
+                          </div>
+                        </div>
+                        <div v-else>
+                          <p class="text-sm text-slate-600 font-normal">
+                            {{ item.content }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -479,7 +567,7 @@
 </template>
 
 <script setup>
-import { kanbanScenarios } from '~/utils/prompts/dashBoard_scenarios.js';
+import { kanbanScenarios, summaryScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
 
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { OpenOutline } from "@vicons/ionicons5";
@@ -521,6 +609,7 @@ const showInput = ref(false);
 const aiText = ref("");
 const textareaMaxHeight = 200; // 약 3줄 정도 최대 높이(px)
 const aiResult = ref([]);
+const filteredAiResult = ref([]);
 const loading = ref(false);
 const showMenu = ref(false);
 const showModal = ref(false);
@@ -755,6 +844,85 @@ async function submitAI() {
   } catch (e) {
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
+    loading.value = false;
+  }
+}
+
+/** 제출 처리 */
+async function summaryCallAI(period) {
+  if(period === 1) {
+    aiText.value = "오늘의 업무를 요약해줘";
+  } else if (period === 2) {
+    aiText.value = "이번 주 업무를 요약해줘";
+  } else {
+    aiText.value = "업무를 요약해줘";
+  }
+
+  loading.value = true;
+
+  filteredAiResult.value.push({
+    type: "user",
+    contentType: "text",
+    content: aiText.value,
+  });
+
+  filteredAiResult.value.push({
+    type: "system",
+    contentType: "text",
+    content: "AI 응답을 기다리는 중...",
+  });
+
+  try {
+
+    // 업무 요약 텍스트로 변환 (HTML 제거 포함)
+    const worksSummary = works
+      .map((work, idx) => {
+        const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 처리자: ${work.users} 키: ${work.id}`;
+      })
+      .join("\n\n");
+
+    const body = {
+        system: summaryScnarios,        
+        history: [],
+        user: aiText.value,
+        works: works.value
+    };
+
+    const prompt = [
+      {
+        role: "user",
+        content: `${body.system}\n\n업무 목록:\n${worksSummary}\n\n사용자 질문:\n${body.user}`
+      }
+    ];      
+
+    const res = await fetch("/api/bedrock-common", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(prompt)
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    chatResult = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chatResult += decoder.decode(value);
+
+      filteredAiResult.value[filteredAiResult.value.length - 1].content = chatResult;
+      filteredAiResult.value[filteredAiResult.value.length - 1] = JSON.parse(JSON.stringify(filteredAiResult.value[filteredAiResult.value.length - 1]));
+
+      await nextTick();
+    }
+
+  } catch (e) {
+    console.error("AI 요청 중 오류 발생:", e);
+  } finally {
+    stopProgressAnimation()
     loading.value = false;
   }
 }
