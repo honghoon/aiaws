@@ -151,9 +151,29 @@ export const sales_order_select = `
     type: 'amount'
   }
 
----
+[날짜 출력 형식]
+- 모든 날짜 필드는 쿼리 결과에서 **문자열 형식**으로 명시적으로 출력되어야 하며, 다음 기준을 따릅니다:
 
-### 응답 형식(JSON)
+1. **일별 집계**일 경우:
+   - \`$dateToString\`을 사용하여 \`"YYYY-MM-DD"\` 형식으로 출력
+   - 예:
+     { "$dateToString": { "format": "%Y-%m-%d", "date": "$orderDate" } }
+
+
+2. **월별 집계**일 경우:
+   - \`"YYYY-MM"\` 형식으로 출력
+   - 예:
+     { "$dateToString": { "format": "%Y-%m", "date": "$orderDate" } }
+
+3. **연도별 집계**일 경우:
+   - "YYYY" 형식으로 출력
+   - 예:
+     { "$dateToString": { "format": "%Y", "date": "$orderDate" } }
+
+---
+[응답형식]
+- 응답 형식은 아래와 같은 JSON 형식으로 답변하여야 합니다. markdown 형식으로 답변하지 말고 ,  순수 JSON 형식으로 답변해.
+- \`\`\`json 과같은 markdown 형식으로 답변하지마세요.
 {
   "queryType": "find" | "aggregate",             // 쿼리 유형
   "collection": "컬렉션명",                      // 예: "sales_orders"

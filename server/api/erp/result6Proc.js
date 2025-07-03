@@ -44,6 +44,37 @@ export const send6Proc = async (writer, history, toMessage) => {
     console.log("## 몽코 디비 실행 오류 ", e)
   }
 
+  try{
+
+    let testData = await db.collection(queryObj.collection).aggregate([
+    {
+      $match: {
+        orderDate: {
+          $gte: new Date("2025-06-01T00:00:00.000Z"),
+          $lte: new Date("2025-06-30T23:59:59.999Z")
+        }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: "$orderDate" },
+          month: { $month: "$orderDate" },
+          day: { $dayOfMonth: "$orderDate" }
+        },
+        totalAmount: { $sum: "$grandTotal" },
+        count: { $sum: 1 }
+      }
+    }
+  ]).toArray();
+
+  console.log("test Data", testData)
+
+  }catch(e){
+    console.log(e)
+  }
+
+  console.log(queryObj)
   formattedResult = resultDataSet;
 
   console.log("분석 쿼리 실행 결과 Mongo DB Result Set: ", formattedResult)
@@ -111,21 +142,33 @@ export const send6Proc = async (writer, history, toMessage) => {
 function parseMongoQueryFromText(queryText) {
   console.log("=== 쿼리 파서 시작 ===");
 
-  try {
-    // 1단계: ISODate(...) / new Date(...) → "yyyy-mm-dd"
-    const cleaned = queryText
-      .replace(/\/\/.*$/gm, '') // 한 줄 주석 제거
-      .replace(/\/\*[\s\S]*?\*\//g, '') // 멀티라인 주석 제거
-      .replace(/(ISODate|new Date)\(\s*["'](.*?)["']\s*\)/g, '"$2"'); // 날짜 표현을 문자열로 변환
+  // 0단계: 코드 블록 제거 - ```json ... ``` 또는 ``` 제거
+  queryText = queryText
+    .replace(/```json\s*/gi, '')  // 시작 태그 제거
+    .replace(/```/g, '');         // 종료 태그 제거
 
-    // 2단계: 문자열로 JSON 파싱
+  try {
+    // 1단계: 주석 및 ISODate/new Date 포맷 정리
+    const cleaned = queryText
+      .replace(/\/\/.*$/gm, '')                         // 한 줄 주석 제거
+      .replace(/\/\*[\s\S]*?\*\//g, '')                 // 멀티라인 주석 제거
+      .replace(/(ISODate|new Date)\(\s*["'](.*?)["']\s*\)/g, '"$2"'); // 날짜 문자열로 치환
+
+    // 2단계: JSON 파싱
     const parsed = JSON.parse(cleaned);
 
-    // 3단계: 모든 객체를 순회하며 ISO date string을 Date 객체로 재변환
+    // 3단계: 날짜 문자열 또는 { "$date": "..." } → Date 객체로 변환
     const convertDates = (obj) => {
       if (Array.isArray(obj)) {
         return obj.map(convertDates);
       } else if (obj && typeof obj === 'object') {
+        // $date 단일 키 처리: { "$date": "..." }
+        if (Object.keys(obj).length === 1 && '$date' in obj && typeof obj['$date'] === 'string') {
+          const date = new Date(obj['$date']);
+          return isNaN(date.getTime()) ? obj : date;
+        }
+
+        // 일반적인 재귀 처리
         for (const key in obj) {
           if (typeof obj[key] === 'string' && /^\d{4}-\d{2}-\d{2}T?\d{0,2}:?\d{0,2}?:?\d{0,2}?(\.\d+)?Z?$/.test(obj[key])) {
             const date = new Date(obj[key]);
@@ -141,7 +184,7 @@ function parseMongoQueryFromText(queryText) {
     };
 
     const final = convertDates(parsed);
-    console.log("✅ 구조 확인용 JSON:", JSON.stringify(parsed, null, 2));
+    console.log("✅ 구조 확인용 JSON:", JSON.stringify(final, null, 2));
     return final;
 
   } catch (e) {
@@ -149,6 +192,7 @@ function parseMongoQueryFromText(queryText) {
     return {};
   }
 }
+
 
 function formatDate(date) {
   return date.toISOString().split('T')[0]; // yyyy-mm-dd
