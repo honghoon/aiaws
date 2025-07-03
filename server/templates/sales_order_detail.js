@@ -5,7 +5,8 @@ export const sales_order_detail = `
 1. 사용자의 질문 중 주문번호, 오더번호, 판매번호 등과 같은 정보를 다음과 같은 json 으로 답변하세요.
 # 예시
 {
-  "orderNumber":"<질문의 오더번호 또는 주문번호>"
+  "orderNumber":"<질문의 오더번호 또는 주문번호>",
+  "title":"<UI에 표기될 타이틀>"
 }
 
 만약 질문 내용 중 오더번호 또는 주문번호가 없으면 orderNumbe 값은 "" 로 빈값으로 답변하세요.

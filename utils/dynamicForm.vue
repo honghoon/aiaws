@@ -50,7 +50,7 @@
 
     <!-- ✅ 수정 모드 -->
     <n-form
-      v-else
+      v-if="isViewMode == false"
       ref="formRef"
       :model="localModel"
       :rules="formRules"
@@ -65,7 +65,13 @@
         :path="field.key"
         :class="getColSpanClass(field)"
       >
+        <template v-if="field.edit === false">
+          <div class="text-sm text-slate-600 font-normal">
+            {{ formatValue(field, localModel[field.key]) }}
+          </div>
+        </template>
         <component
+          v-else
           :is="resolveComponent(field)"
           v-model:value="localModel[field.key]"
           v-bind="getComponentProps(field)"
@@ -103,7 +109,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const formRef = ref(null)
-const isViewMode = ref(false)
+const isViewMode = ref(true)
 
 const localModel = computed({
   get: () => props.modelValue,
@@ -111,6 +117,15 @@ const localModel = computed({
 })
 
 const resolveComponent = (field) => {
+  if (field.edit === false) {
+    return {
+      props: ['value'],
+      setup(props) {
+        return () => h('div', props.value ?? '')
+      }
+    }
+  }
+
   switch (field.type) {
     case 'text': return NInput
     case 'number': return NInputNumber
@@ -149,11 +164,13 @@ const formatValue = (field, value) => {
     const found = field.options.find(opt => opt.value === value)
     return found ? found.label : value
   }
-   if (field.type === 'date') {
+  if (field.type === 'date') {
     const date = new Date(value)
     return isNaN(date.getTime()) ? '-' : date.toLocaleDateString()
   }
-
+  if (field.dataType === 'amount' && typeof value === 'number') {
+    return value.toLocaleString(); // 세 자리 콤마 포맷
+  }
   return value ?? '-'
 }
 

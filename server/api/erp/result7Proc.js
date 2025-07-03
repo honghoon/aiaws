@@ -75,7 +75,7 @@ export const send7Proc = async (writer, history, toMessage) => {
 
   console.log("resultDataSet", resultDataSet)
 
-  formattedResult = resultDataSet;
+  let formattedResult = resultDataSet;
 
   console.log("분석 쿼리 실행 결과 Mongo DB Result Set: ", formattedResult)
   console.log("기준 쿼리 정보", queryObj)
@@ -103,30 +103,13 @@ export const send7Proc = async (writer, history, toMessage) => {
   // bedrock 스트림으로 결과 답변 요청 stream 실행
   await streamFallbackMessageJumpBedrock(writer, sendPrompt)
 
-  let sendResponseData = null;
-
-  if(queryObj.visualization?.type != "table"){
-    sendResponseData = {
-      type: "chart",
-      data: formattedResult,
-      columns: [],
-      chartType: queryObj.visualization?.type || "",
-      title: queryObj.visualization?.title || '',
-      xField: queryObj.visualization?.xField,
-      yField: queryObj.visualization?.yField
-    }
-  }else{
-    try{
-      sendResponseData = {
-        type: "table",
-        data: formattedResult || [],
-        scenrios: 1,
-        columns: queryObj.visualization?.schema || [],
-        title: queryObj.visualization?.title || ''
-      }
-    }catch(e){
-      console.log(e)
-    }
+  // 마지막 결과 Data Set JSON 반환
+  let sendResponseData = {
+      "type":"form",
+      "modelValue":formattedResult[0],
+      "scenrios":3,
+      "schema": schema,
+      "title": queryObj.title,
   }
 
   console.log("sendResponseData", sendResponseData)
@@ -141,6 +124,11 @@ export const send7Proc = async (writer, history, toMessage) => {
 
 function parseMongoQueryFromText(queryText) {
   console.log("=== 쿼리 파서 시작 ===");
+
+    // 0단계: 코드 블록 제거 - ```json ... ``` 또는 ``` 제거
+  queryText = queryText
+    .replace(/```json\s*/gi, '')  // 시작 태그 제거
+    .replace(/```/g, '');         // 종료 태그 제거
 
   try {
     // 1단계: ISODate(...) / new Date(...) → "yyyy-mm-dd"
@@ -188,3 +176,61 @@ function formatDate(date) {
 function formatAmount(value) {
   return value.toLocaleString(); // 세 자리 콤마
 }
+
+const schema = [
+  {
+    label: '주문번호',
+    key: 'orderNumber',
+    type: 'text',
+    required: true,
+    placeholder: '주문번호를 입력하세요',
+    edit:false
+  },
+  {
+    label: '주문일자',
+    key: 'orderDate',
+    type: 'date',
+    required: true,
+  },
+  {
+    label: '고객명',
+    key: 'customerName',
+    type: 'text'
+  },
+  {
+    label: '상태',
+    key: 'status',
+    type: 'select',
+    required: true,
+    options: [
+      { label: '확정', value: 'Confirmed' },
+      { label: '납풉완료', value: 'Delivered' },
+      { label: '진행중', value: 'Open' }
+    ],
+  },
+  {
+    label: '납기 예정일',
+    key: 'deliveryDate',
+    type: 'date'
+  },
+  {
+    label: '결재 조건',
+    key: 'paymentTerm',
+    type: 'text'
+  },
+  {
+    label: '공급가액 합계',
+    key: 'totalAmount',
+    type: 'text',
+    dataType: 'amount'
+  },
+  {
+    label: '총 세액',
+    key: 'totalTax',
+    type: 'text',
+    dataType: 'amount'
+  }
+  
+]
+
+//  { label: '소개', key: 'bio', type: 'textarea', colSpan: 3 }

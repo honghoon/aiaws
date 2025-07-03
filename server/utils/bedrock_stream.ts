@@ -19,7 +19,7 @@ type ClaudeMessage = {
 
 export async function streamClaudeResponse(messages: ClaudeMessage[], event : H3Event<EventHandlerRequest>) {
   const command = new InvokeModelWithResponseStreamCommand({
-    modelId: 'anthropic.claude-3-sonnet-20240229-v1:0',
+    modelId: 'arn:aws:bedrock:us-east-1:333888904784:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0',
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify({
@@ -55,6 +55,7 @@ export async function streamClaudeResponse(messages: ClaudeMessage[], event : H3
 
     const completion = data.completion ?? data.delta?.text ?? '';
     if (completion) {
+      console.log(completion)
       writer.write(`data: ${completion}\n\n`);
     }
   } catch (err) {
@@ -99,13 +100,13 @@ export async function streamFallbackMessageJump(writer: ServerResponse, message:
     while (start < paragraph.length) {
       // 2. 300자씩 쪼갬
       const chunk = paragraph.slice(start, start + maxChunkLength);
-      writer.write(`data: ${chunk}\n\n`);
+      writer.write(`data: ${chunk}`);
       await sleep(2); // 10ms 정도가 안정적
       start += maxChunkLength;
     }
 
     // 문단 간 줄바꿈도 표시
-    writer.write(`data: \n\n`);
+    // writer.write(`data: \n\n`);
     await sleep(2);
   }
 }
@@ -131,7 +132,7 @@ export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, m
   }
 
   let bufferText = '';
-
+  let all = ""
   for await (const chunk of response.body) {
     try {
       // chunk는 이미 JS 객체
@@ -143,19 +144,19 @@ export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, m
 
       const completion = data.completion ?? data.delta?.text ?? '';
       if (completion) {
+        all += completion
         bufferText += completion;
-
         // 일정 길이 이상 쌓이면 flush
-        if (bufferText.length >= 10 || completion.includes('\n')) {
-          writer.write(`data: ${bufferText}\n\n`);
-          bufferText = '';
-        }
+        writer.write(completion);
+        bufferText = '';
       }
     } catch (err) {
       console.error('스트림 처리 중 오류:', err);
       continue;
     }
   }
+
+  console.log(all)
 
   // 루프 종료 시 남은 텍스트도 전송
   if (bufferText.length > 0) {

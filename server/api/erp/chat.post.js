@@ -59,6 +59,8 @@ export default defineEventHandler(async (event) => {
   // 의도 분류 요청
   let resultInvoke= await sendClaudeResponseInvoke(sendPrompt)
 
+  console.log("의도 분석" , sendPrompt)
+
   // 문자나,, 기타 이상한 답변을 할 수 있으므로,, 숫자로 치환
   const intent = resultInvoke["completion"].match(/\b[0-6]\b/);
   const result = intent ? parseInt(intent[0], 10) : 0;
@@ -81,7 +83,7 @@ export default defineEventHandler(async (event) => {
     await send2Proc(writer, history, toMessage);
     return
   }else if (result === 3) {
-    await send3Proc(writer, history, toMessage);
+    await send7Proc(writer, history, toMessage);
     return
   }else if (result === 6) {
     await send6Proc(writer, history, toMessage);
