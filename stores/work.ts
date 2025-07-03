@@ -7,7 +7,7 @@ export const useWorkStore = defineStore('work', () => {
       id: 1,
       type: "개발",
       title: "분석 설계 문서 작성 및 요구사항 정의 완료",
-      status: 1,      
+      status: 1,
       statusName: "대기 업무",    
       color: "infoColor",
       progress: 0,
@@ -30,8 +30,8 @@ export const useWorkStore = defineStore('work', () => {
       statusName: "진행 중",
       color: "infoColorSuppl",
       progress: 20,
-      startDate: "2025-07-02",
-      endDate: "2025-07-03",
+      startDate: "2025-06-02",
+      endDate: "2025-07-10",
       content: `<p>신규 서비스 출시를 위한 시장 조사 결과 공유 및 분석</p>
         <p><u>참석자</u>: 홍길동, 김철수, 이영희</p>
         <ol>
@@ -49,8 +49,8 @@ export const useWorkStore = defineStore('work', () => {
       users:["김수빈"],
       color: "successColor",
       progress: 100,
-      startDate: "2025-07-03",
-      endDate: "2025-08-03",
+      startDate: "2025-06-01",
+      endDate: "2025-07-01",
       content: `<p>모든 주요 기능에 대해 통합 테스트 및 회귀 테스트 완료</p>
         <p>발견된 버그 총 3건을 이슈 트래킹 시스템에 등록 및 담당자 지정</p>
         <ul>
@@ -68,8 +68,8 @@ export const useWorkStore = defineStore('work', () => {
       users:["김영희"],
       color: "infoColor",
       progress: 0,
-      startDate: "2025-07-04",
-      endDate: "2025-09-04",
+      startDate: "2025-06-01",
+      endDate: "2025-07-20",
       content: `<ul>
         <li>정기 서버 점검 및 백업 작업 계획 수립</li>
         <li>서버 부하 및 네트워크 상태 모니터링 강화</li>
@@ -85,8 +85,8 @@ export const useWorkStore = defineStore('work', () => {
       users:["김수빈"],
       color: "infoColorSuppl",
       progress: 70,
-      startDate: "2025-07-05",
-      endDate: "2025-09-05",
+      startDate: "2025-06-05",
+      endDate: "2025-07-01",
       content: `<p>외부 서비스와의 데이터 송수신 API 개발 중</p>
         <p>OAuth 2.0 인증 방식 도입 및 토큰 관리 기능 구현 진행</p>
         <p>API 문서 작성 및 테스트 케이스 작성 예정</p>`,
@@ -99,8 +99,8 @@ export const useWorkStore = defineStore('work', () => {
       statusName: "완료",    
       color: "successColor",
       progress: 100,
-      startDate: "2025-07-06",
-      endDate: "2025-07-10",
+      startDate: "2025-05-01",
+      endDate: "2025-06-10",
       content: `<p>사용자 피드백 기반으로 UI 흐름 및 인터랙션 개선안 작성</p>
         <p>디자인팀과 협의하여 최종 시안 확정 및 프로토타입 제작</p>
         <p>향후 사용자 테스트 일정 조율</p>`,
@@ -114,8 +114,8 @@ export const useWorkStore = defineStore('work', () => {
       users:["김영희"],
       color: "infoColorSuppl",
       progress: 80,
-      startDate: "2025-07-07",
-      endDate: "2025-07-07",
+      startDate: "2025-07-01",
+      endDate: "2025-07-10",
       content: `<p>초기 부하 테스트 결과 정상 범위 내 성능 확인</p>
         <p>추가 스트레스 테스트 계획 수립 및 실행 예정</p>
         <p>성능 모니터링 로그 분석 및 최적화 방안 검토</p>`,
@@ -129,8 +129,8 @@ export const useWorkStore = defineStore('work', () => {
       users:["나웅진"],
       color: "successColor",
       progress: 100,
-      startDate: "2025-07-08",
-      endDate: "2025-08-08",
+      startDate: "2025-04-01",
+      endDate: "2025-05-10",
       content: `<ul>
         <li>시스템 로그 정기 점검 및 이상 징후 탐지</li>
         <li><b>비정상 접근 시도 없음</b> 확인 완료</li>
@@ -161,8 +161,8 @@ export const useWorkStore = defineStore('work', () => {
       users:["나웅진", "김지민", "김수빈"],
       color: "successColor",
       progress: 100,
-      startDate: "2025-07-10",
-      endDate: "2025-09-10",
+      startDate: "2025-06-01",
+      endDate: "2025-07-02",
       content: `<p>주요 경쟁사 분석 및 시장 트렌드 정리</p>
         <ul>
           <li>사용자 니즈 변화 및 요구사항 반영 방향성 제시</li>
@@ -195,7 +195,7 @@ export const useWorkStore = defineStore('work', () => {
       users:["나웅진", "김수빈"],
       color: "warningColor",
       progress: 30,
-      startDate: "2025-07-10",
+      startDate: "2025-07-01",
       endDate: "2025-07-12",
       content: `<p>서비스 출시 전 마지막 사용자 피드백 수집 및 분석</p>
         <ul>
