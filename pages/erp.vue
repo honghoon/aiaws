@@ -523,7 +523,8 @@ const styledContent = (content) => {
 }
 
 
-const renderedHtml = (html) => {      
+const renderedHtml = (html) => {  
+      
   // Markdown-it 인스턴스 생성
   const md = new MarkdownIt({
     html: true, // HTML 태그 허용
@@ -570,5 +571,12 @@ const renderedHtml = (html) => {
   );
   background-size: 300% 100%;
   animation: shimmer 2s infinite linear;
+}
+
+.markdown-body h1 {
+  font-size: 1.5rem;
+}
+.markdown-body h2 {
+  font-size: 1.25rem;
 }
 </style>
