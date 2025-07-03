@@ -80,7 +80,7 @@ let progressInterval = null;
 const progressTypes = {
   spinner: () => {
     const spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-    return `\n\n${spinners[progressState % spinners.length]} 업무 등록 중...`;
+    return `\n\n 업무를 등록 중 입니다... ${spinners[progressState % spinners.length]}`;
   },
 };
 const selectedProgressType = 'spinner';
@@ -96,7 +96,7 @@ const startProgressAnimation = () => {
 
   progressInterval = setInterval(() => {
     const spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-    progressText.value = `${spinners[progressState % spinners.length]} 업무 업로드 중...`;
+    progressText.value = `업무를 등록 중 입니다... ${spinners[progressState % spinners.length]}`;
     progressState++;
   }, 200);
 };

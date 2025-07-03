@@ -113,7 +113,6 @@
       menu-trigger="click"
       v-model:show-menu="showMenu"
       class="z-50 transition overflow-visible"
-      @click="summaryCallAI(1)"
     >
       <n-icon>
         <text
@@ -298,13 +297,13 @@
           style="transform: translateX(-20%)"
         >
           <!-- 상단 버튼 탭 (Naive UI n-button 사용) -->
-          <div class="flex justify-center space-x-6 mb-10 px-4" >
-            <n-button 
+          <div class="flex justify-center space-x-6 mb-10 px-4">
+            <n-button
               size="small"
               ghost
               type="primary"
-              :disabled="selectedTab === 'today'"
-              @click="selectedTab = 'today'"
+              @click="summaryCallAI(1)"
+              style="margin-right: 10px;"
             >
               오늘
             </n-button>
@@ -312,10 +311,19 @@
               size="small"
               ghost
               type="primary"
-              :disabled="selectedTab === 'week'"
-              @click="selectedTab = 'week'"
+              @click="summaryCallAI(2)"
+              style="margin-right: 10px;"
             >
               금주
+            </n-button>
+            <n-button
+              size="small"
+              ghost
+              type="primary"
+              @click="summaryCallAI(3)"
+              style="margin-right: 10px;"
+            >
+              조직
             </n-button>
           </div>
 
@@ -333,17 +341,7 @@
                   :key="index"
                   class="flex flex-col items-start gap-3"
                 >
-                  <div
-                    class="flex justify-end w-full"
-                    v-if="item.type === 'user'"
-                  >
-                    <span
-                      class="inline-flex items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-normal text-slate-600 ring-1 ring-inset ring-gray-500/10 whitespace-pre-line block"
-                    >
-                      {{ item.content }}
-                    </span>
-                  </div>
-                  <div class="flex-1" v-else>
+                  <div class="flex-1">
                     <div v-if="item.contentType === 'text'">
                       <div v-if="item.type === 'system'">
                         <div v-if="item.answers?.length">
@@ -354,12 +352,6 @@
                           >
                             <div class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
                               {{ ans.content }}
-                            </div>
-
-                            <div class="mt-3 text-right">
-                              <n-button size="small" ghost type="primary" @click="openAnsSelectItem(ans.work.id)">
-                                상세보기
-                              </n-button>
                             </div>
                           </div>
                         </div>
@@ -567,7 +559,7 @@
 </template>
 
 <script setup>
-import { kanbanScenarios, summaryScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
+import { kanbanScenarios, todayWorkScnarios, weekWorkScnarios, deptWorkScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
 
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { OpenOutline } from "@vicons/ionicons5";
@@ -630,6 +622,8 @@ const handleFileUploaded = function(file) {
   // 추가 처리 로직 작성 가능
 }
 
+const todayFormat = new Date().toISOString().split('T')[0]; // "2025-06-26"
+
 const extensions = [
   StarterKit.configure({
     bulletList: { keepMarks: true },
@@ -679,7 +673,7 @@ const mappings = {
   미팅: "teal",
 };
 
-function getBadgeClasses(type) {
+const getBadgeClasses = function(type) {
   const color = mappings[type] || "teal";
   return {
     badge: `bg-${color}-100 text-${color}-700`,
@@ -688,7 +682,7 @@ function getBadgeClasses(type) {
 }
 
 /** 텍스트 자동 높이 조절 */
-function autoResize(e) {
+const autoResize = function(e) {
   const ta = e.target;
   ta.style.height = "auto";
   ta.style.height = `${Math.min(ta.scrollHeight, textareaMaxHeight)}px`;
@@ -705,40 +699,35 @@ const openAnsSelectItem = (id) => {
 let progressState = 0;
 let progressInterval = null;
 
-// 다양한 프로그레스 표현 방식
-const progressTypes = {
-  spinner: () => {
-    const spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-    return `\n\n${spinners[progressState % spinners.length]} 데이터 분석 중...`;
-  },
-};
-const selectedProgressType = 'spinner';
-
 // 함수 시작 부분에 변수들 선언
-let visibleText = '';
-let chatResult = '';
-let insideJsonBlock = false;
+const isProgressing = ref(false);
+const progressText = ref(''); // 계속 갱신될 텍스트 (⠋ 분석 중...)
 
-function startProgressAnimation() {
+const startProgressAnimation = (contentEle) => {  
+  isProgressing.value = true;
   progressState = 0;
-  
-  progressInterval = setInterval(() => {
-    progressState++;
-    const progressText = progressTypes[selectedProgressType]();
-    const currentContent = visibleText + progressText;
-    aiResult.value[aiResult.value.length - 1].content = currentContent;
-  }, 200); // 0.2초마다 업데이트
-}
 
-function stopProgressAnimation() {
+  progressInterval = setInterval(() => {
+    const spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    progressText.value = `업무를 조회 중 입니다... ${spinners[progressState % spinners.length]}`;
+    contentEle.value[contentEle.value.length-1].content = progressText.value;
+    progressState++;
+  }, 200);
+};
+
+const stopProgressAnimation = (contentEle) => {
   if (progressInterval) {
     clearInterval(progressInterval);
     progressInterval = null;
     progressState = 0;
+    isProgressing.value = false;
+    progressText.value = '';
   }
-}
+};
 
-
+let chatResult = "";
+let visibleText = "";
+let insideJsonBlock = false;
 /** 제출 처리 */
 async function submitAI() {
   if (!aiText.value.trim() || loading.value) return;
@@ -754,7 +743,7 @@ async function submitAI() {
   aiResult.value.push({
     type: "system",
     contentType: "text",
-    content: "AI 응답을 기다리는 중...",
+    content: "업무를 조회 중 입니다...",
   });
 
   try {
@@ -781,6 +770,7 @@ async function submitAI() {
       }
     ];      
 
+    startProgressAnimation(aiResult); // 프로그레스 시작
     const res = await fetch("/api/bedrock-common", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -791,8 +781,6 @@ async function submitAI() {
     const decoder = new TextDecoder();
 
     chatResult = "";
-    visibleText = "";
-    insideJsonBlock = false;
 
     while (true) { 
       const { done, value } = await reader.read(); 
@@ -805,8 +793,7 @@ async function submitAI() {
         const jsonStartIndex = chatResult.indexOf("<jsonData>"); 
         if (jsonStartIndex !== -1) { 
           visibleText = chatResult.substring(0, jsonStartIndex); 
-          insideJsonBlock = true; 
-          startProgressAnimation(); // 프로그레스 시작
+          insideJsonBlock = true;           
         } else { 
           visibleText = chatResult; 
           aiResult.value[aiResult.value.length - 1].content = visibleText;
@@ -815,7 +802,7 @@ async function submitAI() {
         const jsonEndIndex = chatResult.indexOf("</jsonData>"); 
         if (jsonEndIndex !== -1) {
           insideJsonBlock = false;
-          stopProgressAnimation(); // 프로그레스 중지
+          stopProgressAnimation(aiResult); // 프로그레스 중지
           aiResult.value[aiResult.value.length - 1].content = visibleText;
         }
       }
@@ -825,7 +812,7 @@ async function submitAI() {
         resultBox.value.scrollTop = resultBox.value.scrollHeight; 
     }
 
-    stopProgressAnimation();
+    stopProgressAnimation(aiResult);
 
     const jsonMatch = chatResult.match(/<jsonData>\s*([\s\S]*?)\s*<\/jsonData>/);
 
@@ -844,58 +831,107 @@ async function submitAI() {
   } catch (e) {
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
+    progressText.value = "";
+    stopProgressAnimation(aiResult);
     loading.value = false;
   }
 }
 
-/** 제출 처리 */
-async function summaryCallAI(period) {
-  if(period === 1) {
-    aiText.value = "오늘의 업무를 요약해줘";
-  } else if (period === 2) {
-    aiText.value = "이번 주 업무를 요약해줘";
-  } else {
-    aiText.value = "업무를 요약해줘";
+// 이번 주 날짜 배열을 생성하는 함수
+const getThisWeekDates = function(today = new Date()) {
+  const dates = [];
+  
+  // 현재 날짜의 요일 구하기 (0: 일요일, 1: 월요일, ..., 6: 토요일)
+  const dayOfWeek = today.getDay();
+  
+  // 이번 주 월요일 날짜 계산 (월요일을 주의 시작으로 설정)
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dayOfWeek + 1);
+  
+  // 월요일부터 일요일까지 7일간 배열에 추가
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    
+    // YYYY-MM-DD 형식으로 변환
+    const formattedDate = date.toISOString().split('T')[0];
+    dates.push(formattedDate);
   }
+  
+  return dates;
+}
 
-  loading.value = true;
+// 월요일부터 일요일까지 (한국 기준)
+const thisWeekFromMonday = getThisWeekDates(today);
 
-  filteredAiResult.value.push({
-    type: "user",
-    contentType: "text",
-    content: aiText.value,
+const clearAllAnswersContent = () => {
+  filteredAiResult.value.forEach(item => {
+    item.content = "";
   });
+};
 
-  filteredAiResult.value.push({
-    type: "system",
-    contentType: "text",
-    content: "AI 응답을 기다리는 중...",
-  });
 
+/** 제출 처리 */
+async function summaryCallAI(type) {
+  clearAllAnswersContent();
+  let question = "";
+  let scenario;
+  let charge;
+  let content;
   try {
 
     // 업무 요약 텍스트로 변환 (HTML 제거 포함)
     const worksSummary = works
       .map((work, idx) => {
         const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-        return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 처리자: ${work.users} 키: ${work.id}`;
-      })
-      .join("\n\n");
+        let users = `${work.users}`;
+        return `
+                {id: ${idx + 1}}, 
+                {statusName: ${work.statusName}}, 
+                {status: ${work.status}}, 
+                {type: ${work.type}} - 
+                {title: ${work.title}} ,
+                (period: ${work.startDate} ~ ${work.endDate}),
+                {content: ${textContent}},
+                {startDate: ${work.startDate}},
+                {endDate: ${work.endDate}},
+                {progress: ${work.progress}%},
+                {users: ${users}}`;
+      }).join("\n\n");
 
-    const body = {
-        system: summaryScnarios,        
-        history: [],
-        user: aiText.value,
-        works: works.value
-    };
+    if(type === 1){ //오늘 내가 할일
+      question = `오늘 담당자가 해야할 업무를 요약해줘.`
+      scenario = todayWorkScnarios;
+      charge = "나웅진";
+      content = `${scenario(worksSummary)}\n\n 사용자 질문:${question} \n\n {today: ${todayFormat}} \n\n {user: ${charge}}`;
+    }else if(type === 2){
+      question = `이번 주에 담당자 해야할 업무를 요약해줘.`
+      scenario = weekWorkScnarios;
+      charge = "나웅진";
+      content = `${scenario(worksSummary)}\n\n 사용자 질문:${question} \n\n {thisWeek: ${thisWeekFromMonday}}, \n\n {today: ${todayFormat}}  \n\n {user: ${charge}}`;
+    }else if (type ===3){
+      question = `오늘 해야할 업무를 요약해줘. 오늘 날짜는 ${todayFormat} 이야`
+      scenario = deptWorkScnarios;
+      content = `${scenario(worksSummary)}\n\n 사용자 질문:${question} \n\n {today: ${todayFormat}}`;
+    }
+
+    loading.value = true;
+
+    filteredAiResult.value.push({
+      type: "system",
+      contentType: "text",
+      content: "",
+    });
 
     const prompt = [
       {
         role: "user",
-        content: `${body.system}\n\n업무 목록:\n${worksSummary}\n\n사용자 질문:\n${body.user}`
+        content: content
       }
     ];      
 
+    startProgressAnimation(filteredAiResult);
+    
     const res = await fetch("/api/bedrock-common", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -908,6 +944,7 @@ async function summaryCallAI(period) {
     chatResult = "";
 
     while (true) {
+      stopProgressAnimation(filteredAiResult);
       const { done, value } = await reader.read();
       if (done) break;
 
@@ -917,12 +954,14 @@ async function summaryCallAI(period) {
       filteredAiResult.value[filteredAiResult.value.length - 1] = JSON.parse(JSON.stringify(filteredAiResult.value[filteredAiResult.value.length - 1]));
 
       await nextTick();
+      summaryCallCnt = summaryCallCnt+1
     }
-
   } catch (e) {
+    summaryCallCnt = 0;
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
-    stopProgressAnimation()
+    progressText.value = "";
+    stopProgressAnimation(filteredAiResult);
     loading.value = false;
   }
 }
@@ -991,6 +1030,15 @@ watch(aiResult, async () => {
     resultBox.value.scrollTop = resultBox.value.scrollHeight
   }
 })
+
+let summaryCallCnt = 0;
+// 메뉴 열릴 때 함수 호출
+watch(showMenu, (val) => {
+  if (summaryCallCnt == 0 && val) {
+    summaryCallAI(1)
+  }
+})
+
 
 </script>
 
