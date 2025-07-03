@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   });
 
   const input = {
-    modelId: "anthropic.claude-3-sonnet-20240229-v1:0", // Claude 3.5 모델 예시
+    modelId: 'arn:aws:bedrock:us-east-1:333888904784:inference-profile/us.anthropic.claude-opus-4-20250514-v1:0', 
     contentType: "application/json",
     accept: "application/json",
     body: JSON.stringify({

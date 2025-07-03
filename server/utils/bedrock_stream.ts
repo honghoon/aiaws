@@ -113,7 +113,7 @@ export async function streamFallbackMessageJump(writer: ServerResponse, message:
 export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, messages: ClaudeMessage[]) {
   
   const command = new InvokeModelWithResponseStreamCommand({
-    modelId: 'anthropic.claude-3-sonnet-20240229-v1:0',
+    modelId: 'arn:aws:bedrock:us-east-1:333888904784:inference-profile/us.anthropic.claude-opus-4-20250514-v1:0', 
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify({
