@@ -711,6 +711,8 @@ const startProgressAnimation = (contentEle) => {
     const spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     progressText.value = `업무를 조회 중 입니다... ${spinners[progressState % spinners.length]}`;
     contentEle.value[contentEle.value.length-1].content = progressText.value;
+    
+    
     progressState++;
   }, 200);
 };
@@ -783,6 +785,7 @@ async function submitAI() {
     chatResult = "";
 
     while (true) { 
+      stopProgressAnimation(aiResult); // 프로그레스 중지
       const { done, value } = await reader.read(); 
       if (done) break; 
 
@@ -801,8 +804,7 @@ async function submitAI() {
       } else {
         const jsonEndIndex = chatResult.indexOf("</jsonData>"); 
         if (jsonEndIndex !== -1) {
-          insideJsonBlock = false;
-          stopProgressAnimation(aiResult); // 프로그레스 중지
+          insideJsonBlock = false;          
           aiResult.value[aiResult.value.length - 1].content = visibleText;
         }
       }
@@ -811,8 +813,6 @@ async function submitAI() {
       if (resultBox.value) 
         resultBox.value.scrollTop = resultBox.value.scrollHeight; 
     }
-
-    stopProgressAnimation(aiResult);
 
     const jsonMatch = chatResult.match(/<jsonData>\s*([\s\S]*?)\s*<\/jsonData>/);
 
@@ -829,6 +829,7 @@ async function submitAI() {
 
     aiText.value = "";
   } catch (e) {
+    stopProgressAnimation(aiResult);
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
     progressText.value = "";
@@ -905,7 +906,7 @@ async function summaryCallAI(type) {
       charge = "나웅진";
       content = `${scenario(worksSummary)}\n\n 사용자 질문:${question} \n\n {today: ${todayFormat}} \n\n {user: ${charge}}`;
     }else if(type === 2){
-      question = `이번 주에 담당자 해야할 업무를 요약해줘.`
+      question = `이번 주에 담당자가 해야할 업무를 요약해줘.`
       scenario = weekWorkScnarios;
       charge = "나웅진";
       content = `${scenario(worksSummary)}\n\n 사용자 질문:${question} \n\n {thisWeek: ${thisWeekFromMonday}}, \n\n {today: ${todayFormat}}  \n\n {user: ${charge}}`;
@@ -958,6 +959,7 @@ async function summaryCallAI(type) {
     }
   } catch (e) {
     summaryCallCnt = 0;
+    stopProgressAnimation(filteredAiResult);
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
     progressText.value = "";

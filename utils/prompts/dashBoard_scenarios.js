@@ -157,15 +157,15 @@ export function todayWorkScnarios(worksSummary) {
 
     ### 날짜 처리
     - 오늘 날짜(today)를 기준으로 판단
-    - endDate를 기준으로 마감일 표시    
-    - 이번 주: 월요일부터 일요일까지의 범위
+    - endDate를 기준으로 마감일 표시
     - **기간 표시**: startDate ~ endDate 형식으로 업무 전체 기간 표시
     - **마감일 카운트**: 오늘 기준으로 D-N일(남은 일수) 또는 D+N일(지연 일수) 표시
 
     ### 오늘 해야할 업무 처리
-    - 업무의 상태가 완료가 아니고 (status != 4), startDate <= today <= endDate면 오늘 해야할 일이야
+    - startDate <= today이고 today <= endDate면 오늘 해야할 일이야
     - 반드시 업무상태가 완료인 업무는 제외해줘
-    - 오늘 해야할 업무는 (today - startDate) 계산하여 "D+N일 지남) 형식으로 표시
+    - 오늘 해야할 업무는 (today - startDate) 계산하여 "D+N일) 형식으로 표시
+    - 지연된 업무는 해야할 업무에서 제외되어야해
 
     ### 지연 업무 처리
     - 업무의 상태가 완료가 아니고 (status != 4), today > endDate면 지연 업무야
@@ -256,7 +256,7 @@ export function weekWorkScnarios(worksSummary) {
       주요 내용 요약
 
     **📋 총 업무 현황**
-    • 지연 업무: 0건 || 오늘 해야 할 업무: 0건
+    • 오늘 해야 할 업무: 0건 || 지연 업무: 0건
 
     **⚠️ 주의사항**
     • 지연 위험이 있는 업무나 특별히 주의해야 할 내용
@@ -269,7 +269,7 @@ export function weekWorkScnarios(worksSummary) {
     ### 날짜 처리
     - 시작(startDate)를 기준으로 판단
     - endDate를 기준으로 마감일 표시    
-    - 이번 주는 월요일부터 일요일까지의 범위
+    - 이번 주: 월요일부터 일요일까지의 범위
     - startDate 또는 endDate가 thisWeek에 속하는 업무만 조회해줘
     - **기간 표시**: startDate ~ endDate 형식으로 업무 전체 기간 표시
     - **마감일 카운트**: 오늘 기준으로 D-N일(남은 일수) 또는 D+N일(지연 일수) 표시
