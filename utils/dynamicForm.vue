@@ -29,6 +29,25 @@
       </div>
     </div>
 
+    <!-- ✅ 보기 모드: lineItemSections가 존재할 때 추가 렌더링 -->
+    <div v-if="isViewMode && lineItemSections?.length" class="space-y-6 mt-8">
+      <div
+        v-for="(section, sIndex) in lineItemSections"
+        :key="'section-' + sIndex"
+        class="border-t pt-6"
+      >
+        <h4 class="text-base font-bold text-slate-600 mb-2">
+          {{ section.title }}
+        </h4>
+        <n-data-table
+          :columns="section.columns"
+          :data="localModel[section.key] || []"
+          :bordered="true"
+          :scroll-x="1000"
+        />
+      </div>
+    </div>
+
     <!-- ✅ 수정 모드 -->
     <n-form
       v-else
@@ -67,7 +86,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import {
-  NForm, NFormItem, NInput, NInputNumber, NSelect, NButton, useMessage, NDatePicker
+  NForm, NFormItem, NInput, NInputNumber, NSelect, NButton, useMessage, NDatePicker, NDataTable
 } from 'naive-ui'
 
 const message = useMessage()
@@ -75,7 +94,11 @@ const message = useMessage()
 const props = defineProps({
   title: String,
   schema: Array,
-  modelValue: Object
+  modelValue: Object,
+  lineItemSections: {
+    type: Array,
+    default: () => []
+  }
 })
 const emit = defineEmits(['update:modelValue'])
 

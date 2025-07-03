@@ -11,6 +11,7 @@ import { send1Proc } from '~/server/api/erp/result1Proc';
 import { send2Proc } from '~/server/api/erp/result2Proc';
 import { send3Proc } from '~/server/api/erp/result3Proc';
 import { send6Proc } from '~/server/api/erp/result6Proc';
+import { send7Proc } from '~/server/api/erp/result7Proc';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
@@ -62,6 +63,8 @@ export default defineEventHandler(async (event) => {
   const intent = resultInvoke["completion"].match(/\b[0-6]\b/);
   const result = intent ? parseInt(intent[0], 10) : 0;
 
+  console.log(`========= 의도 분석 인입 시나리오 ========== [" + ${result} + "]`) 
+  
   // 0은 시나리오에 없으므로 아래와 같이 답변하여 챗팅을 종료한다.
   if (result === 0) {
     await streamFallbackMessageJump(writer, messgageKey)
@@ -71,7 +74,6 @@ export default defineEventHandler(async (event) => {
     return;
   }
 
-  console.log(`========= 의도 분석 인입 시나리오 ========== [" + ${result} + "]`) 
   if (result === 1) {
     await send1Proc(writer, history, toMessage);
     return
@@ -83,6 +85,9 @@ export default defineEventHandler(async (event) => {
     return
   }else if (result === 6) {
     await send6Proc(writer, history, toMessage);
+    return
+  }else if (result === 7) {
+    await send7Proc(writer, history, toMessage);
     return
   }
 

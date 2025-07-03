@@ -29,7 +29,7 @@
           :flex-height="true"
           size="small"
           :scroll-x="tableWidth"
-          :style="{ height: '400px' }"
+          :style="{ height: '300px' }"
         />
       </div>
     </n-space>
