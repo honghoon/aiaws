@@ -104,7 +104,7 @@ export const useWorkStore = defineStore('work', () => {
       endDate: "2025-06-10",
       content: `<p>사용자 피드백 기반으로 UI 흐름 및 인터랙션 개선안 작성</p>
         <p>디자인팀과 협의하여 최종 시안 확정 및 프로토타입 제작</p>
-        <p>향후 사용자 테스트 일정 조율</p>`,
+        <p>향후 사용자 테스트 일정 조율</p>`, 
     },
     {
       id: 7,
