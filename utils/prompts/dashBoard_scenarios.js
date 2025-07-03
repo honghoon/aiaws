@@ -162,9 +162,11 @@ export function todayWorkScnarios(worksSummary) {
     - **마감일 카운트**: 오늘 기준으로 D-N일(남은 일수) 또는 D+N일(지연 일수) 표시
 
     ### 오늘 해야할 업무 처리
-    - startDate <= today이고 today <= endDate면 오늘 해야할 일이야
+    - 업무의 상태가 완료가 아니고 (status != 4), (startDate <= today <= endDate)면 오늘 해야할 일이야
+    - 시작날짜와 종료날짜 사이에 오늘 날짜가 있으면 해야할 업무야
+    - 기간에 오늘 날짜가 속한 업무는 오늘 해야할 업무야
     - 반드시 업무상태가 완료인 업무는 제외해줘
-    - 오늘 해야할 업무는 (today - startDate) 계산하여 "D+N일) 형식으로 표시
+    - 오늘 해야할 업무는 (today - startDate) 계산하여 "D+N일 지남) 형식으로 표시
     - 지연된 업무는 해야할 업무에서 제외되어야해
 
     ### 지연 업무 처리
