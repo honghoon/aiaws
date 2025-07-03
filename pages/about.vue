@@ -2,11 +2,11 @@
   <div class="relative">
     <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6">
       <div class="flex pb-3 justify-end gap-3">
-        <n-button strong secondary round type="primary">
+        <n-button strong secondary round type="primary" @click="submitAI('default')">
           AI 주간보고 생성하기
         </n-button>
         
-        <n-button strong secondary round type="primary">
+        <n-button strong secondary round type="primary" @click="submitAI('all')">
           AI 주간보고 취합하기
         </n-button>
 
@@ -314,7 +314,7 @@ nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
 // 날짜 비교 함수
 const isWithin = (dateStr, start, end) => {
   const date = new Date(dateStr);
-  return date >= start && date <= end;
+  return date >= start && date <= end; 
 };
 
 function extractSummaryFromHTML(html) {
@@ -345,15 +345,19 @@ function extractSummaryFromHTML(html) {
 }
 
 
+/** 제출 처리 **/
 
 /** 제출 처리 **/
-async function submitAI() {
-
+async function submitAI( val) {
+  if(val =='default'){
+    aiText.value = '주간보고 작성해줘';
+  }else if(val == 'all'){
+    aiText.value = '주간보고 취합해줘';
+  }
   if (!aiText.value.trim() || loading.value) return;
 
   let prompt = []
 
-  
   if(aiText.value.indexOf('수정') != -1 || aiText.value.indexOf('변경') != -1){ // 금주가 아니면?
       if(!checkedValue.value.trim()){
          alert("수정할 주간보고를 선택해주세요");
@@ -361,30 +365,14 @@ async function submitAI() {
       }
       let summarizedText = '';
       if(checkedValue.value == 'thisweek'){
-         // 주간 필터링
-          // updateWorks= updateWorks.map((work, idx) => {
-          //               const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-          //               return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-          //             })
-          //             .join("\n\n");
           if(editorThis.getHTML().indexOf('금주 업무 내용을 작성하세요') != -1){
             alert("금주 작성된 주간보고가 없습니다");
             return 
           }
-          //textContent = editorThis.getHTML().replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-
          let textContent = editorThis.getHTML();
          summarizedText = extractSummaryFromHTML(textContent);
      
-
-         
       }else{
-          // updateWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd))  .map((work, idx) => {
-          //                     const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-          //                     return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-          //                   })
-          //                   .join("\n\n");
-          // }
           if(editorNext.getHTML().indexOf('차주 계획을 작성하세요') != -1){
             alert("차주 작성된 주간보고가 없습니다");
             return 
@@ -392,8 +380,6 @@ async function submitAI() {
           textContent = editorNext.getHTML().replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
          
       }
-       
-
       const thisWeekWorks2 = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
             .map((work, idx) => {   
               const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -402,7 +388,6 @@ async function submitAI() {
       .join("\n\n");
 
 
-      // 금주 주간보고
       let messages = aboutUpdateScenarios
       .replace('{today}', today) 
       .replace("{editor}", summarizedText)
@@ -410,6 +395,7 @@ async function submitAI() {
          + `\n\n[사용자 요청]\n${aiText.value}`;
 
       prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks2 + messages });
+      
       let res = await fetch('/api/bedrock-common', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'  },
@@ -462,6 +448,7 @@ async function submitAI() {
       let messages = aboutScenarios
       .replace('{today}', today) 
       .replace('{tasks}', JSON.stringify(thisWeekWorks))
+         + `\n\n[사용자 요청]\n${aiText.value}`;
 
       prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
 
