@@ -395,7 +395,7 @@ async function submitAI() {
        
 
       const thisWeekWorks2 = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
-            .map((work, idx) => {
+            .map((work, idx) => {   
               const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
         return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
       })
