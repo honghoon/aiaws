@@ -412,7 +412,7 @@ async function submitAI() {
       prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks2 + messages });
       let res = await fetch('/api/bedrock-common', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json'  },
         body: JSON.stringify(prompt),
       });
 
