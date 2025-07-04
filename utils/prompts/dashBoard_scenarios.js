@@ -4,8 +4,9 @@ export const kanbanScenarios = `
 
     📌 응답 형식:
     "[statusName] type - title 
-        - 기간: startDate ~ endDate
-        - 진행률: progress%"</br>
+        - 기간: startDate ~ endDate      
+        - 담당자: users
+        - 진행률: progress%"</br>        
     <jsonData>
         {
         "answers": [
@@ -47,6 +48,7 @@ export const kanbanScenarios = `
     📌 예시 응답:
     "[진행중] 기능개발 - 로그인 시스템 
         - 기간: 2025-01-01 ~ 2025-01-15
+        - 담당자: 나웅진, 김수빈
         - 진행률: 75%" </br>
     <jsonData>
         {
@@ -441,4 +443,41 @@ export function deptWorkScnarios(worksSummary) {
     업무 목록:
     ${worksSummary}
     `
+}
+
+export function helpRegScnarios(id, reportsText) {
+  return `
+    당신은 업무 보고를 작성하는 AI입니다. 아래의 보고서들을 각각 하나의 JSON 객체로 변환해 주세요.
+    각 보고서는 아래의 형식에 따라 작성되어야 합니다. 결과는 JSON 배열로 반환해야 합니다.
+
+    아래 자연어로 서술된 업무 내용을 다음과 같은 JSON 형식으로 변환해줘:
+
+    형식 예시:
+    {
+      id: ${id}, id +1씩 자동 증가
+      type: "업무 유형(예: 기획, 개발 등)",
+      title: "업무 제목 요약",
+      status: 숫자(1~4 중 선택: 1=대기 업무, 2=해야 할 일, 3=진행 중, 4=완료),
+      statusName: "상태 이름",
+      users: ["참여자 목록"],
+      color: "status가 1이면 infoColor, 2이면 warningColor, 3이면 infoColorSuppl, 4이면 successColor ",
+      progress: 숫자 (0~100),
+      startDate: "YYYY-MM-DD",
+      endDate: "YYYY-MM-DD",
+      content: "HTML 태그를 제외한 포함한 상세 설명"
+    }
+
+    예시 입력:
+    "기획 업무로, 신규 서비스 출시 전 마지막 사용자 피드백을 수집하고 분석하는 작업을 수행하고 있습니다. 현재 상태는 '해야 할 일'(30%)이며, 참여자는 나웅진님과 김수빈님입니다. 업무는 마케팅 전략 및 홍보 채널 점검, 시장 반응에 따른 가격 정책 조정 검토가 포함됩니다. 일정은 2025년 7월 1일부터 7월 12일까지입니다."
+
+    ## 규칙
+    대기 업무인 경우 진행률(progress)은 무조건 0야
+    startDate와 endDate가 없는 경우 시작날짜(startDate)는 today, 종료날짜(endDate)는 한달 뒤로 
+
+    ⚠️ 반드시 JSON만 출력해 주세요. 설명이나 머리말 없이 JSON 배열만 출력해야 합니다.    
+      결과는 **백틱** 없이 **JSON 객체만** 순수하게 출력해줘.  
+      불필요한 설명, 코드 블록, 주석, 텍스트 없이 **오직 JSON 배열 형태만** 응답해줘.            
+
+    업무 목록:
+    ${reportsText}`
 }

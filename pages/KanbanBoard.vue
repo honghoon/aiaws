@@ -24,15 +24,8 @@
             @close="showFileUploadModal = false"
             @fileUploaded="handleFileUploaded"
           />
-          <n-button
-            strong
-            secondary
-            round
-            type="tertiary"
-            @click="registerwork"
-          >
-            등록
-          </n-button>
+          <n-button strong secondary round type="primary" @click="helpRegWork" :loading="loading">HELP(ITSM)</n-button>
+          <n-button strong secondary round type="tertiary">등록</n-button>
           <n-button strong secondary round type="info"> 조회 </n-button>
         </div>
       </div>
@@ -559,7 +552,7 @@
 </template>
 
 <script setup>
-import { kanbanScenarios, todayWorkScnarios, weekWorkScnarios, deptWorkScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
+import { kanbanScenarios, todayWorkScnarios, weekWorkScnarios, deptWorkScnarios, helpRegScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
 
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { OpenOutline } from "@vicons/ionicons5";
@@ -574,10 +567,14 @@ import Highlight from "@tiptap/extension-highlight";
 import Underline from "@tiptap/extension-underline";
 import FileUploadModal from './fileUpload/fileUploadModal.vue';
 import Link from "@tiptap/extension-link";
-import { useWorkStore } from '~/stores/work';
 
+import { useWorkStore } from '~/stores/work';
 const workStore = useWorkStore()
 const works = workStore.works
+
+import { useHelpWorkStore } from '~/stores/helpWork';
+const helpWorkStore = useHelpWorkStore()
+const helpWorks = helpWorkStore.helpWorks
 
 // Ionicons
 import { IonIcon } from "@ionic/vue";
@@ -622,7 +619,7 @@ const handleFileUploaded = function(file) {
   // 추가 처리 로직 작성 가능
 }
 
-const todayFormat = new Date().toISOString().split('T')[0]; // "2025-06-26"
+const todayFormat = new Date().toISOString().split('T')[0].replace(/-/g, '');; // "2025-06-26"
 
 const extensions = [
   StarterKit.configure({
@@ -727,11 +724,15 @@ const stopProgressAnimation = (contentEle) => {
   }
 };
 
+let submitControll = true;
+
 let chatResult = "";
 let visibleText = "";
 let insideJsonBlock = false;
 /** 제출 처리 */
 async function submitAI() {
+  if(submitControll === false) return;
+
   if (!aiText.value.trim() || loading.value) return;
 
   loading.value = true;
@@ -754,9 +755,20 @@ async function submitAI() {
     const worksSummary = works
       .map((work, idx) => {
         const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-        return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-      })
-      .join("\n\n");
+        let users = `${work.users}`;
+        return `
+                {id: ${idx + 1}}, 
+                {statusName: ${work.statusName}}, 
+                {status: ${work.status}}, 
+                {type: ${work.type}} - 
+                {title: ${work.title}} ,
+                (period: ${work.startDate} ~ ${work.endDate}),
+                {content: ${textContent}},
+                {startDate: ${work.startDate}},
+                {endDate: ${work.endDate}},
+                {progress: ${work.progress}%},
+                {users: ${users}}`;
+      }).join("\n\n");
 
     const body = {
         system: kanbanScenarios,        
@@ -771,6 +783,8 @@ async function submitAI() {
         content: `${body.system}\n\n업무 목록:\n${worksSummary}\n\n사용자 질문:\n${body.user}`
       }
     ];      
+
+    submitControll = false;
 
     startProgressAnimation(aiResult); // 프로그레스 시작
     const res = await fetch("/api/bedrock-common", {
@@ -829,12 +843,85 @@ async function submitAI() {
 
     aiText.value = "";
   } catch (e) {
+    submitControll = true;
     stopProgressAnimation(aiResult);
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
+    submitControll = true;
     progressText.value = "";
     stopProgressAnimation(aiResult);
     loading.value = false;
+  }
+}
+
+//
+async function helpRegWork() {
+  if(submitControll === false) return;
+
+  loading.value = true;
+  const id = works.length+1;
+  let content;
+  try {
+
+    content = `${helpRegScnarios(id, JSON.stringify(helpWorks))}\n\n {today: ${todayFormat}}`;
+
+    const prompt = [
+      {
+        role: "user",
+        content: content
+      }
+    ];      
+
+    submitControll = false;
+
+    const res = await fetch("/api/bedrock-common", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(prompt),
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    chatResult = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chatResult += decoder.decode(value);
+
+      await nextTick();
+    }    
+
+    chatResult = cleanClaudeResponse(chatResult);
+    const resultArray = JSON.parse(JSON.stringify(chatResult));
+    works.push(...resultArray); // 기존 업무에 덧붙이기
+
+  } catch (e) {
+    loading.value = false;
+    submitControll = true;
+    console.error("AI 요청 중 오류 발생:", e);
+  } finally {
+    submitControll = true;
+    loading.value = false;
+  }
+}
+
+const cleanClaudeResponse = function(text) {
+  try {
+    // ```json ~ ``` 으로 감싸진 경우
+    const codeBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/i);
+    if (codeBlockMatch) return JSON.parse(codeBlockMatch[1]);
+
+    // 대괄호 [ ] 로 시작하는 JSON 배열만 추출
+    const jsonMatch = text.match(/\[\s*{[\s\S]*?}\s*]/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+
+    throw new Error("JSON 구조를 찾을 수 없습니다.");
+  } catch (e) {
+    console.error("cleanClaudeResponse 파싱 실패:", e);
+    return [];
   }
 }
 
@@ -874,6 +961,7 @@ const clearAllAnswersContent = () => {
 
 /** 제출 처리 */
 async function summaryCallAI(type) {
+  if(submitControll == false) return;
   clearAllAnswersContent();
   let question = "";
   let scenario;
@@ -931,6 +1019,8 @@ async function summaryCallAI(type) {
       }
     ];      
 
+    submitControll = false;
+
     startProgressAnimation(filteredAiResult);
     
     const res = await fetch("/api/bedrock-common", {
@@ -958,10 +1048,12 @@ async function summaryCallAI(type) {
       summaryCallCnt = summaryCallCnt+1
     }
   } catch (e) {
+    submitControll = true;
     summaryCallCnt = 0;
     stopProgressAnimation(filteredAiResult);
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
+    submitControll = true;
     progressText.value = "";
     stopProgressAnimation(filteredAiResult);
     loading.value = false;
