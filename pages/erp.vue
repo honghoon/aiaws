@@ -1,22 +1,41 @@
 <template>
   <div class="relative">
-    <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6 w-full overflow-x-hidden">
-      
-      <div class="min-h-[calc(100vh-230px)] h-[calc(100vh-230px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3 w-full overflow-x-hidden">
-        <div class="bg-white flex-1 flex flex-col rounded-md w-full h-full overflow-y-auto overflow-x-hidden">
-          <div ref="resultBox" class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto overflow-x-hidden">
-            <div v-for="(item, index) in aiResult" :key="index"
-              class="flex flex-col items-start gap-3">
-              
+    <div
+      class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6 w-full overflow-x-hidden"
+    >
+      <div
+        class="min-h-[calc(100vh-230px)] h-[calc(100vh-230px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3 w-full overflow-x-hidden"
+      >
+        <div
+          class="bg-white flex-1 flex flex-col rounded-md w-full h-full overflow-y-auto overflow-x-hidden"
+        >
+          <div
+            ref="resultBox"
+            class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto overflow-x-hidden"
+          >
+            <div
+              v-for="(item, index) in aiResult"
+              :key="index"
+              class="flex flex-col items-start gap-3"
+            >
               <div class="flex justify-end w-full" v-if="item.type === 'user'">
-                <span class="inline-flex items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-normal text-slate-600 ring-1 ring-inset ring-gray-500/10 whitespace-pre-line block"> {{ item.content }}</span>
+                <span
+                  class="inline-flex items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-normal text-slate-600 ring-1 ring-inset ring-gray-500/10 whitespace-pre-line block"
+                >
+                  {{ item.content }}</span
+                >
               </div>
-              
-              <div class="flex-1 min-w-full max-w-full overflow-x-hidden" v-else>
+
+              <div
+                class="flex-1 min-w-full max-w-full overflow-x-hidden"
+                v-else
+              >
                 <!-- <CharTest class="max-w-[1000px] max-h-[300px]"/> -->
-                <div  v-if="item.contentType != 'proc'" class="flex flex-col whitespace-pre-lines" style="max-width: 100%">
-                  <MdPreview :modelValue="item.content" />
-                </div>
+                <div
+                  v-if="item.contentType != 'proc'"
+                  class="text-sm text-slate-600 font-normal lex flex-col gap-0"
+                  v-html="renderedHtml(item.content)"
+                ></div>
                 <!-- <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p> -->
                 <p
                   v-if="item.contentType === 'proc'"
@@ -24,47 +43,64 @@
                 >
                   {{ item.content }}
                 </p>
-                
-                <div v-if="item.contentType === 'table'" class="flex w-full" style="max-width: 100%;">
-                  <ComTable 
-                    :columns="item.col" 
-                    :tableRowData="item.tableRowData" 
-                    :tableTitle = "item.title"
+
+                <div
+                  v-if="item.contentType === 'table'"
+                  class="flex w-full"
+                  style="max-width: 100%"
+                >
+                  <ComTable
+                    :columns="item.col"
+                    :tableRowData="item.tableRowData"
+                    :tableTitle="item.title"
                   />
                 </div>
 
-                <div v-if="item.contentType === 'table_edit'" class="flex w-full" style="max-width: 100%;">
-                  <ComTable 
-                    :columns="item.col" 
-                    :tableRowData="item.tableRowData" 
-                    :tableTitle = "item.title"
+                <div
+                  v-if="item.contentType === 'table_edit'"
+                  class="flex w-full"
+                  style="max-width: 100%"
+                >
+                  <ComTable
+                    :columns="item.col"
+                    :tableRowData="item.tableRowData"
+                    :tableTitle="item.title"
                     edit="edit"
                   />
                 </div>
 
-                <div v-if="item.contentType === 'form'" class="flex w-full" style="max-width: 100%;">
-                  <dynamicForm 
+                <div
+                  v-if="item.contentType === 'form'"
+                  class="flex w-full"
+                  style="max-width: 100%"
+                >
+                  <dynamicForm
                     :schema="item.schema"
                     :modelValue="item.modelValue"
                     :title="item.title"
                   />
                 </div>
 
-                <div v-if="item.contentType === 'chart'" class="flex w-full" style="max-width: 100%;">
-                  <ComChart 
-                    :data="item.data"
-                  />
+                <div
+                  v-if="item.contentType === 'chart'"
+                  class="flex w-full"
+                  style="max-width: 100%"
+                >
+                  <ComChart :data="item.data" />
                 </div>
-
-                
 
                 <div v-if="item.contentType === 'createTemplate'">
                   <n-table :bordered="false" :single-line="false">
                     <thead>
-                    <tr>
-                      <th v-for="(colName, colindex) in item.col" :key="colindex">{{colName}}</th>
-                    </tr>
-                  </thead>
+                      <tr>
+                        <th
+                          v-for="(colName, colindex) in item.col"
+                          :key="colindex"
+                        >
+                          {{ colName }}
+                        </th>
+                      </tr>
+                    </thead>
                     <tbody>
                       <tr>
                         <td>1</td>
@@ -80,10 +116,15 @@
                 <div v-if="item.contentType === 'updateTemplate'">
                   <n-table :bordered="false" :single-line="false">
                     <thead>
-                    <tr>
-                      <th v-for="(colName, colindex) in item.col" :key="colindex">{{colName}}</th>
-                    </tr>
-                  </thead>
+                      <tr>
+                        <th
+                          v-for="(colName, colindex) in item.col"
+                          :key="colindex"
+                        >
+                          {{ colName }}
+                        </th>
+                      </tr>
+                    </thead>
                     <tbody>
                       <tr>
                         <td>1</td>
@@ -95,29 +136,39 @@
                     </tbody>
                   </n-table>
                 </div>
-
               </div>
 
-              <n-divider v-if="item.type === 'system'"/>
+              <n-divider v-if="item.type === 'system'" />
             </div>
           </div>
         </div>
       </div>
 
-      <textarea 
-        v-model="aiText" 
+      <textarea
+        v-model="aiText"
         rows="4"
         class="mt-3 w-full resize-none rounded-lg bg-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none text-slate-500"
-        placeholder="AI에게 물어보세요..." 
+        placeholder="AI에게 물어보세요..."
         @keydown.enter.exact="send_chat"
         @keydown.shift.enter.stop
         :style="{ 'max-height': textareaMaxHeight + 'px' }"
       ></textarea>
       <!-- 보내기 버튼 (아이콘) -->
-      <button @click="send_chat"
-        class="absolute bottom-15 right-8 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-label="보내기">
+      <button
+        @click="send_chat"
+        class="absolute bottom-15 right-8 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          viewBox="0 0 24 24"
+          aria-label="보내기"
+        >
           <path d="M5 12h14M12 5l7 7-7 7" />
         </svg>
       </button>
@@ -126,46 +177,52 @@
 </template>
 
 <script setup>
-import { h, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { h, ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 
 // Ionicons
-import { IonIcon } from '@ionic/vue'
-import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, linkOutline } from 'ionicons/icons'
-import CharTest from './chartTest.vue'
-import { NTag } from 'naive-ui'
-import { createColumns } from '~/utils/tableUtils'
-import ComTable from '~/utils/comTable.vue'
-import ComChart from '~/utils/comChart.vue'
-import dynamicForm from '~/utils/dynamicForm.vue' 
-import MarkdownIt from 'markdown-it'
+import { IonIcon } from "@ionic/vue";
+import {
+  textOutline,
+  ellipsisHorizontalOutline,
+  removeOutline,
+  listOutline,
+  linkOutline,
+} from "ionicons/icons";
+import CharTest from "./chartTest.vue";
+import { NTag } from "naive-ui";
+import { createColumns } from "~/utils/tableUtils";
+import ComTable from "~/utils/comTable.vue";
+import ComChart from "~/utils/comChart.vue";
+import dynamicForm from "~/utils/dynamicForm.vue";
+import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
-import mila from 'markdown-it-link-attributes'
-import { MdPreview } from 'md-editor-v3'
-import 'md-editor-v3/lib/preview.css'
+import mila from "markdown-it-link-attributes";
+import { MdPreview } from "md-editor-v3";
+import "md-editor-v3/lib/preview.css";
 
 const md = new MarkdownIt({
-  html: true,       // HTML 태그 허용
-  linkify: true,    // www.naver.com → 자동 링크 변환
-  typographer: true,// 스마트 따옴표, 대시, 기호 자동 변환
-  breaks: true      // 줄바꿈(\n) → <br>
-})
+  html: true, // HTML 태그 허용
+  linkify: true, // www.naver.com → 자동 링크 변환
+  typographer: true, // 스마트 따옴표, 대시, 기호 자동 변환
+  breaks: true, // 줄바꿈(\n) → <br>
+});
 
 const textareaMaxHeight = 100;
-const aiText = ref("")
-const aiResult = ref([])
-const resultBox = ref(null)
-const loading = ref(false)
+const aiText = ref("");
+const aiResult = ref([]);
+const resultBox = ref(null);
+const loading = ref(false);
 const pagination = {
-        pageSize: 5
-}
+  pageSize: 5,
+};
 
 // aiResult가 변경될 때마다 스크롤을 하단으로 이동
 watch(aiResult, async () => {
-  await nextTick()
+  await nextTick();
   if (resultBox.value) {
-    resultBox.value.scrollTop = resultBox.value.scrollHeight
+    resultBox.value.scrollTop = resultBox.value.scrollHeight;
   }
-})
+});
 
 /**
  * 
@@ -240,7 +297,6 @@ watch(aiResult, async () => {
     
  */
 async function submitAI() {
-  
   if (!aiText.value.trim() || loading.value == true) {
     return; // 입력이 비어있으면 아무 작업도 하지 않음
   }
@@ -248,66 +304,67 @@ async function submitAI() {
   loading.value = true;
 
   /** 몽고 디비 테스트 */
-  const res1 = await fetch('/api/testMongo');
-  console.log("mongo", res1)
+  const res1 = await fetch("/api/testMongo");
+  console.log("mongo", res1);
   if (!res1.ok) {
-    throw new Error('서버 응답 오류: ' + res1.status)
+    throw new Error("서버 응답 오류: " + res1.status);
   }
-  const json = await res1.json()
+  const json = await res1.json();
 
-  console.log("mongo", json)
+  console.log("mongo", json);
 
-  try{
-
+  try {
     aiResult.value.push({
-      type: 'user',
-      contentType: 'text',
-      content: aiText.value
-    })
-  
+      type: "user",
+      contentType: "text",
+      content: aiText.value,
+    });
+
     // aiResult.value.push({
     //   type: 'user',
     //   contentType: 'text',
     //   content: "안녕하세요. AI입니다. 무엇을 도와드릴까요?"
     // })
-  
+
     aiResult.value.push({
-      type: 'system',
-      contentType: 'text',
-      content: "AI 응답을 기다리는 중..."
-    })
-  
-    const res = await fetch('/api/test');
+      type: "system",
+      contentType: "text",
+      content: "AI 응답을 기다리는 중...",
+    });
+
+    const res = await fetch("/api/test");
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-  
-    let chatResult = '';
-  
+
+    let chatResult = "";
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       console.log(decoder.decode(value));
-  
+
       // aiResult.value += decoder.decode(value);
-  
+
       chatResult += decoder.decode(value);
-  
+
       aiResult.value[aiResult.value.length - 1].content = chatResult;
-      aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
-  
-      await nextTick()
+      aiResult.value[aiResult.value.length - 1] = JSON.parse(
+        JSON.stringify(aiResult.value[aiResult.value.length - 1])
+      );
+
+      await nextTick();
       if (resultBox.value) {
-        resultBox.value.scrollTop = resultBox.value.scrollHeight
+        resultBox.value.scrollTop = resultBox.value.scrollHeight;
       }
     }
-  
-    aiText.value = '' // 입력창 초기화
-  }catch(e) {
-    console.error('AI 요청 중 오류 발생:', e)
+
+    aiText.value = ""; // 입력창 초기화
+  } catch (e) {
+    console.error("AI 요청 중 오류 발생:", e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-  
+
   // aiResult.value = ''
   // const res = await fetch('/api/bedrock-stream', {
   //   method: 'POST',
@@ -342,7 +399,6 @@ async function submitAI() {
 
   // Claude 호출
   let res = await useBedrock({ messages });
-
 }
 
 const useBedrock = async ({ messages }) => {
@@ -357,48 +413,47 @@ const useBedrock = async ({ messages }) => {
   return res;
 };
 
-const send_chat = async() =>{
-  
+const send_chat = async () => {
   if (!aiText.value.trim() || loading.value == true) {
     return; // 입력이 비어있으면 아무 작업도 하지 않음
   }
 
   loading.value = true;
-  
+
   aiResult.value.push({
-    type: 'user',
-    contentType: 'text',
-    content: aiText.value
-  })
+    type: "user",
+    contentType: "text",
+    content: aiText.value,
+  });
 
   aiText.value = "";
 
   aiResult.value.push({
-    type: 'system',
-    contentType: 'text',
+    type: "system",
+    contentType: "text",
     content: "AI 응답을 기다리는 중...",
-    proc: true
-  })
+    proc: true,
+  });
 
-  let chatResult = '';
-  let fullchatResult = '';
-  let prompt = []
-  let is_end = false
+  let chatResult = "";
+  let fullchatResult = "";
+  let prompt = [];
+  let is_end = false;
 
-  for(let item of aiResult.value){
-    if(item.proc == undefined){
-      if (item.type === "user"){
-        prompt.push({"role": "user", "content" : item.content})
+  for (let item of aiResult.value) {
+    if (item.proc == undefined) {
+      if (item.type === "user") {
+        prompt.push({ role: "user", content: item.content });
       }
-      if (item.type === "system"){
-        prompt.push({"role": "assistant", "content" : item.content})
+      if (item.type === "system") {
+        prompt.push({ role: "assistant", content: item.content });
       }
     }
   }
 
-  const res = await fetch('/api/erp/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch("/api/erp/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt: prompt }),
   });
 
@@ -421,78 +476,90 @@ const send_chat = async() =>{
       if (done) break;
 
       const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+      if (chunk == "data: \n\n") {continue;}
+      if (chunk == "\n\n") {continue;}
+      console.log("chunk", chunk);
 
-      for (const line of lines) {
-        const text = line.replace('data: ', '');
-        if (text === '[DONE]') return;
+      let text = chunk.replace("data: ", "");
 
-        if (text === prockey) {
-          chatType = "proc";
-          chatResult = ""; // 챗 초기화
-          continue;
-        }
+      if (text.includes("[DONE]")) return;
 
-        if (text === messgageKey) {
-          chatType = "text";
-          chatResult = ""; // 챗 초기화
-          continue;
-        }
+      if (text.includes(prockey)) {
+        chatType = "proc";
+        chatResult = ""; // 챗 초기화
+        continue;
+      }
 
-        if (text === jsonKey){
-          is_end = true
-          fullchatResult += text;
-          continue;
-        }
+      if (text.includes(messgageKey)) {
+        chatType = "text";
+        chatResult = ""; // 챗 초기화
+        continue;
+      }
 
-        // 빈 줄은 무시
-        if (is_end == true){
-          fullchatResult += text;
-          continue;
-        }
-
-        chatResult += text;
+      if (text.includes(jsonKey)) {
+        is_end = true;
         fullchatResult += text;
+        continue;
+      }
 
+      // 빈 줄은 무시
+      if (is_end == true) {
+        fullchatResult += text;
+        continue;
+      }
 
-        aiResult.value[aiResult.value.length - 1].contentType = chatType;
-        aiResult.value[aiResult.value.length - 1].content = chatResult;
-        aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
+      chatResult += text;
+      fullchatResult += text;
 
-        await nextTick();
-        if (resultBox.value) {
-          resultBox.value.scrollTop = resultBox.value.scrollHeight;
-        }
+      aiResult.value[aiResult.value.length - 1].contentType = chatType;
+      aiResult.value[aiResult.value.length - 1].content = chatResult;
+      aiResult.value[aiResult.value.length - 1] = JSON.parse(
+        JSON.stringify(aiResult.value[aiResult.value.length - 1])
+      );
+
+      await nextTick();
+      if (resultBox.value) {
+        resultBox.value.scrollTop = resultBox.value.scrollHeight;
       }
     }
+
+    console.log("종료 ===")
   } finally {
-    if (is_end == true){
+    if (is_end == true) {
       const parts = fullchatResult.split(jsonKey);
-      const afterJson = parts.length > 1 ? parts[1].trim() : '';
+      const afterJson = parts.length > 1 ? parts[1].trim() : "";
+      console.log(aiResult.value[aiResult.value.length - 1].content);
+      if (afterJson !== "") {
+        let tableRowData = JSON.parse(afterJson);
 
-      if(afterJson !== ''){
-        let tableRowData = JSON.parse(afterJson)
-        
-        if (tableRowData.type == 'table' || tableRowData.type == 'table_edit') {
-          aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type
-          aiResult.value[aiResult.value.length - 1].col = tableRowData.columns
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title
-          aiResult.value[aiResult.value.length - 1].tableRowData = tableRowData.data
+        if (tableRowData.type == "table" || tableRowData.type == "table_edit") {
+          aiResult.value[aiResult.value.length - 1].contentType =
+            tableRowData.type;
+          aiResult.value[aiResult.value.length - 1].col = tableRowData.columns;
+          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+          aiResult.value[aiResult.value.length - 1].tableRowData =
+            tableRowData.data;
         }
 
-        if (tableRowData.type == 'form') {
-          aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title
-          aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema
-          aiResult.value[aiResult.value.length - 1].modelValue = tableRowData.modelValue
+        if (tableRowData.type == "form") {
+          aiResult.value[aiResult.value.length - 1].contentType =
+            tableRowData.type;
+          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+          aiResult.value[aiResult.value.length - 1].schema =
+            tableRowData.schema;
+          aiResult.value[aiResult.value.length - 1].modelValue =
+            tableRowData.modelValue;
         }
 
-        if (tableRowData.type == 'chart'){
-          aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type
-          aiResult.value[aiResult.value.length - 1].data = tableRowData
+        if (tableRowData.type == "chart") {
+          aiResult.value[aiResult.value.length - 1].contentType =
+            tableRowData.type;
+          aiResult.value[aiResult.value.length - 1].data = tableRowData;
         }
-        
-        aiResult.value[aiResult.value.length - 1] = JSON.parse(JSON.stringify(aiResult.value[aiResult.value.length - 1]));
+
+        aiResult.value[aiResult.value.length - 1] = JSON.parse(
+          JSON.stringify(aiResult.value[aiResult.value.length - 1])
+        );
         await nextTick();
         if (resultBox.value) {
           resultBox.value.scrollTop = resultBox.value.scrollHeight;
@@ -502,13 +569,13 @@ const send_chat = async() =>{
     loading.value = false;
   }
   aiText.value = "";
-}
+};
 
 /** table 이 있는 경우 스타일 추가 하기  */
 const styledContent = (content) => {
   // 테이블 요소를 포함하고 있는지 검사
 
-  let rehtml = renderedHtml(content)
+  let rehtml = renderedHtml(content);
   const containsTable = /<table[^>]*>/.test(rehtml);
   if (containsTable) {
     // 테이블 요소에 스타일 클래스를 추가합니다.
@@ -520,36 +587,37 @@ const styledContent = (content) => {
     return wrapper.innerHTML;
   }
   return rehtml;
-}
+};
 
-
-const renderedHtml = (html) => {  
-      
+const renderedHtml = (html) => {
   // Markdown-it 인스턴스 생성
   const md = new MarkdownIt({
-    html: true, // HTML 태그 허용
-    breaks: true,
+    breaks: false, 
     highlight: (str, lang) => {
       if (lang && hljs.getLanguage(lang)) {
         try {
-          return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`;
-        } catch (error) {console.error}
+          return `<pre class="hljs"><code>${
+            hljs.highlight(str, { language: lang }).value
+          }</code></pre>`;
+        } catch (error) {
+          console.error;
+        }
       }
       return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`; // 기본 처리
     },
   });
 
   md.use(mila, {
-    pattern: /^https?:\/\//,  // http(s)로 시작하는 외부 링크에만 적용
+    pattern: /^https?:\/\//, // http(s)로 시작하는 외부 링크에만 적용
     attrs: {
-      target: '_blank',
-      rel: 'noopener noreferrer'
-    }
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
   });
 
-  // LLM 응답을 Markdown에서 HTML로 변환
-  return md.render(html);
-}
+  // LLM 응답을 Markdown에서 HTML로 변환, .markdown-body로 감싸기
+  return `<div class="markdown-body">${md.render(html)}</div>`;
+};
 </script>
 
 <style scoped>
@@ -579,4 +647,37 @@ const renderedHtml = (html) => {
 .markdown-body h2 {
   font-size: 1.25rem;
 }
+</style>
+
+<style >
+.markdown-body p,
+.markdown-body li,
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin: 0px 0 !important;
+  line-height: 1.0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  padding-left: 1rem;
+}
+
+.markdown-body pre {
+  margin: 0px 0 !important;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin-block-start: 2px !important;
+  margin-block-end: 2px !important;
+  padding-inline-start: 20px !important;
+}
+
 </style>
