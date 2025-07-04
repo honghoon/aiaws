@@ -127,7 +127,8 @@ export const sales_order_select = `
 - 쿼리 결과에 나오는 컬럼은 모두 schema 에 포함되어야 합니다.
 - schema 에는 쿼리 목록에 나오지 않는 컬럼은 있으면 안됩니다.
 - 응답 예시 (JSON) visualization.schema
-- visualization.title 에는 "사용자에게 보여줄 차트 제목"       // ex: "고객별 총 매출 금액"
+- visualization.title 에는 "사용자에게 보여줄 차트 제목"       // ex: "**월 고객별 총 매출 금액"
+- visualization.title 에는 조회 조건이 포함되어 있는 제목으로 구성해줘 사용자가 명확하게 알 수 있도록.
 {
     title: '전표번호',
     key: 'slipNumber',

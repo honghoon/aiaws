@@ -1,10 +1,10 @@
 <template>
   <div class="relative">
     <div
-      class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6 w-full overflow-x-hidden"
+      class="min-h-[calc(100vh-75px)] max-h-[calc(100vh-75px)] bg-white flex flex-col p-6 w-full overflow-x-hidden overflow-y-hidden"
     >
       <div
-        class="min-h-[calc(100vh-230px)] h-[calc(100vh-230px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3 w-full overflow-x-hidden"
+        class="min-h-[calc(100vh-250px)] h-[calc(100vh-250px)] flex gap-3 bg-gray-100 rounded-md shadow-sm p-3 w-full overflow-x-hidden"
       >
         <div
           class="bg-white flex-1 flex flex-col rounded-md w-full h-full overflow-y-auto overflow-x-hidden"
@@ -20,7 +20,7 @@
             >
               <div class="flex justify-end w-full" v-if="item.type === 'user'">
                 <span
-                  class="inline-flex items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-normal text-slate-600 ring-1 ring-inset ring-gray-500/10 whitespace-pre-line block"
+                  class="items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-normal text-slate-600 ring-1 ring-inset ring-gray-500/10 whitespace-pre-line block"
                 >
                   {{ item.content }}</span
                 >
@@ -33,16 +33,22 @@
                 <!-- <CharTest class="max-w-[1000px] max-h-[300px]"/> -->
                 <div
                   v-if="item.contentType != 'proc'"
-                  class="text-sm text-slate-600 font-normal lex flex-col gap-0"
+                  class="text-base text-slate-600 font-normal lex flex-col gap-0 mb-3"
                   v-html="renderedHtml(item.content)"
                 ></div>
                 <!-- <p v-if="item.contentType != 'proc'" class="text-sm text-slate-600 font-normal">{{ item.content }}</p> -->
-                <p
-                  v-if="item.contentType === 'proc'"
-                  class="text-sm text-slate-600 font-normal relative overflow-hidden shimmer-bg px-2 py-1 rounded-md"
-                >
-                  {{ item.content }}
-                </p>
+                  <p
+                    v-if="item.contentType === 'proc'"
+                    class="text-sm text-slate-600 font-normal relative overflow-hidden shimmer-bg px-2 py-1 rounded-md"
+                  >
+                    {{ item.content }}
+                  </p>
+                  <n-space vertical v-if="item.contentType === 'proc' || item.contentType === 'text'">
+                    <n-skeleton text :repeat="1" width="40%"/> 
+                    <n-skeleton text :repeat="1" width="80%" height="80px" /> 
+                    <n-skeleton text :repeat="1" width="60%"/> 
+                    <n-skeleton height="40px" width="66%" circle />
+                  </n-space>
 
                 <div
                   v-if="item.contentType === 'table'"
@@ -143,51 +149,53 @@
           </div>
         </div>
       </div>
-
+      
       <textarea
         v-model="aiText"
         rows="4"
-        class="mt-3 w-full resize-none rounded-lg bg-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none text-slate-500"
+        class="shadow-md mt-3 w-full resize-none rounded-lg focus:ring-2 focus:ring-blue-400 transition duration-200 ease-in-out placeholder-slate-400 bg-gray-100 px-3 py-2 pr-10 pl-15 text-sm focus:outline-none text-slate-500"
         placeholder="AI에게 물어보세요..."
         @keydown.enter.exact="send_chat"
         @keydown.shift.enter.stop
         :style="{ 'max-height': textareaMaxHeight + 'px' }"
       ></textarea>
+      
+      <n-button @click="active = true" strong secondary circle type="info" class="absolute !bottom-15 left-3">
+        <template #icon>
+          <n-icon><Apps /></n-icon>
+        </template>
+      </n-button>
+
       <!-- 보내기 버튼 (아이콘) -->
-      <button
-        @click="send_chat"
-        class="absolute bottom-15 right-8 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          viewBox="0 0 24 24"
-          aria-label="보내기"
-        >
-          <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
-      </button>
+      <n-button @click="send_chat" strong secondary type="success" circle class="!absolute !bottom-20 right-8">
+        <template #icon>
+          <n-icon :size="26"><ArrowUpCircle /></n-icon> <!-- 기본보다 큼 -->
+        </template>
+      </n-button>
+
     </div>
   </div>
+  
+  <n-drawer v-model:show="active" :width="350" placement="left">
+    <n-drawer-content>
+      <n-menu
+          :collapsed-width="64"
+          :collapsed-icon-size="22"
+          :options.value="transformedMenuOptions"
+          default-expanded-keys="ERP"
+          @update:value="handleMenuClick"
+      />
+    </n-drawer-content>
+  </n-drawer>
+
 </template>
 
 <script setup>
 import { h, ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 
 // Ionicons
-import { IonIcon } from "@ionic/vue";
-import {
-  textOutline,
-  ellipsisHorizontalOutline,
-  removeOutline,
-  listOutline,
-  linkOutline,
-} from "ionicons/icons";
+import { NIcon } from 'naive-ui';
+import { Apps,  ArrowUpCircle } from "@vicons/ionicons5";
 import CharTest from "./chartTest.vue";
 import { NTag } from "naive-ui";
 import { createColumns } from "~/utils/tableUtils";
@@ -200,6 +208,8 @@ import mila from "markdown-it-link-attributes";
 import { MdPreview } from "md-editor-v3";
 import "md-editor-v3/lib/preview.css";
 
+const active  = ref(false)
+
 const md = new MarkdownIt({
   html: true, // HTML 태그 허용
   linkify: true, // www.naver.com → 자동 링크 변환
@@ -207,6 +217,112 @@ const md = new MarkdownIt({
   breaks: true, // 줄바꿈(\n) → <br>
 });
 
+const handleMenuClick = (key) => {
+  aiText.value = key
+  active.value = false
+  send_chat()
+};
+const transformedMenuOptions = ref([]);
+
+const menuOptions = [
+  {
+      label: 'ERP',
+      key: 'ERP',
+      icon: 'NewspaperOutline',
+      children: [
+      {
+        label: '법인카드 사용현황',
+        key: ''
+      },
+      {
+        label: '법인카드 전표 처리',
+        key: ''
+      },
+      {
+        label: '판매현황',
+        key: '6월 판매현황을 상세히 보여줘'
+      },
+      {
+        label: '제품별 판매현황',
+        key: '6월 제품별 판매현황을 분석해줘 TOP10'
+      },
+      {
+        label: '고객별 판매현황',
+        key: '6월 고객별 판매현황을 분석해줘'
+      },
+      {
+        label: '판매오더 상세 확인',
+        key: 'SO20250630-0010 판매정보를 상세히 알려줘'
+      },
+    ]
+  },
+  {
+      label: 'WRMS',
+      key: 'about6',
+      icon: 'NewspaperOutline'
+  },
+  {
+      label: 'WDMS',
+      key: 'about5',
+      icon: 'NewspaperOutline'
+  },
+  {
+      label: 'PMS',
+      key: 'about4',
+      icon: 'NewspaperOutline'
+  },
+  {
+      label: 'BI',
+      key: 'about3',
+      icon: 'NewspaperOutline',
+      to: '/erp'
+  },
+  {
+      label: '그룹웨어',
+      key: 'about2',
+      icon: 'NewspaperOutline'
+  },
+];
+
+async function loadIcon(iconName) {
+  try {
+      const iconModule = await import('@vicons/ionicons5'); // ✅ 필요할 때만 동적 import
+      return iconModule[iconName] || null; // ✅ 아이콘이 없으면 null 반환
+  } catch (error) {
+      console.error(`아이콘 "${iconName}"을 찾을 수 없습니다.`);
+      return null;
+  }
+}
+
+async function renderIcon(iconName) {
+  const iconComponent = await loadIcon(iconName);
+  if (!iconComponent) return null;
+  return () => h(NIcon, null, { default: () => h(iconComponent) });
+}
+
+const transMenuoption = async () => {
+  // transformedMenuOptions.value = menuOptions;
+  for (const item of menuOptions) {
+      const transformedItem = { 
+          ...item,
+          icon: item.icon ? await renderIcon(item.icon) : undefined,
+      };
+
+      if (item && item.children) {
+          transformedItem.children = [];
+          for (const child of item.children) {
+              transformedItem.children.push({
+                  ...child,
+                  icon: child.icon ? await renderIcon(child.icon) : undefined
+              });
+          }
+      }
+
+      transformedMenuOptions.value.push(transformedItem); // ✅ 하나씩 푸시하여 Proxy 문제 방지
+  }
+  
+  console.log("transformedMenuOptions", transformedMenuOptions.value);
+};
 const textareaMaxHeight = 100;
 const aiText = ref("");
 const aiResult = ref([]);
@@ -618,6 +734,10 @@ const renderedHtml = (html) => {
   // LLM 응답을 Markdown에서 HTML로 변환, .markdown-body로 감싸기
   return `<div class="markdown-body">${md.render(html)}</div>`;
 };
+
+onMounted(async () => {
+  await transMenuoption();
+});
 </script>
 
 <style scoped>
@@ -650,34 +770,10 @@ const renderedHtml = (html) => {
 </style>
 
 <style >
-.markdown-body p,
-.markdown-body li,
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3,
-.markdown-body h4,
-.markdown-body h5,
-.markdown-body h6 {
-  margin: 0px 0 !important;
-  line-height: 1.0;
-}
 
-.markdown-body ul,
-.markdown-body ol {
-  margin-top: 0px !important;
-  margin-bottom: 0px !important;
-  padding-left: 1rem;
-}
-
-.markdown-body pre {
-  margin: 0px 0 !important;
-}
-
-.markdown-body ul,
-.markdown-body ol {
-  margin-block-start: 2px !important;
-  margin-block-end: 2px !important;
-  padding-inline-start: 20px !important;
+.markdown-body {
+  white-space: normal; /* 기본: 줄바꿈 무시 */
+  word-break: break-word; /* 긴 단어 줄바꿈 */
 }
 
 </style>

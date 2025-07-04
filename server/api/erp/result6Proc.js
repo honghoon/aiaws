@@ -34,44 +34,19 @@ export const send6Proc = async (writer, history, toMessage) => {
 
   try {
     if (queryObj.queryType === 'find') {
-      resultDataSet = await db.collection(queryObj.collection).find(queryObj.filter || {}, {
-        projection: queryObj.projection || {}
-      }).toArray();
+      resultDataSet = await db.collection(queryObj.collection).find(
+        queryObj.filter || {},
+        {
+          projection: queryObj.projection || {}
+        }
+      ).sort(queryObj.sort || {})   // 정렬 추가
+      .limit(queryObj.limit || 10) // 제한 추가
+      .toArray();
     } else if (queryObj.queryType === 'aggregate') {
       resultDataSet = await db.collection(queryObj.collection).aggregate(queryObj.pipeline || []).toArray();
     }
   }catch(e){
     console.log("## 몽코 디비 실행 오류 ", e)
-  }
-
-  try{
-
-    let testData = await db.collection(queryObj.collection).aggregate([
-    {
-      $match: {
-        orderDate: {
-          $gte: new Date("2025-06-01T00:00:00.000Z"),
-          $lte: new Date("2025-06-30T23:59:59.999Z")
-        }
-      }
-    },
-    {
-      $group: {
-        _id: {
-          year: { $year: "$orderDate" },
-          month: { $month: "$orderDate" },
-          day: { $dayOfMonth: "$orderDate" }
-        },
-        totalAmount: { $sum: "$grandTotal" },
-        count: { $sum: 1 }
-      }
-    }
-  ]).toArray();
-
-  console.log("test Data", testData)
-
-  }catch(e){
-    console.log(e)
   }
 
   console.log(queryObj)
