@@ -13,9 +13,20 @@
         <n-button strong secondary round type="tertiary">
           임시저장
         </n-button>
-        <n-button strong secondary round type="info">
+        <n-button strong secondary round type="info" @click="submitToLeader = true">
           주간보고
         </n-button>
+          <!-- 주간보고 제출 팝업창 -->
+        <n-modal
+          v-model:show="submitToLeader"
+          preset="dialog"
+          title="확인"
+          content="주간보고를 제출하시겠습니까?"
+          positive-text="확인"
+          negative-text="취소"
+          @positive-click="submitCallback"
+          @negative-click="cancelCallback"
+        />
       </div>
       <div class="min-h-[calc(100vh-280px)] flex gap-3">
         <!-- 전주 -->
@@ -177,32 +188,10 @@
       </button>
     </div>
   </div>
- <!-- <n-card title="운영 업무" size="large" class="w-full">
-    <n-space vertical size="large">
-     
-      <div class="text-xl font-semibold">1. 로그 모니터링</div>
-
- 
-      <n-space align="left" justify="space-between">
-        <n-tag type="info" round>기간: 2025-07-01 ~ 2025-07-08</n-tag>
-        <n-tag type="success" round>진행률: 100%</n-tag>
-      </n-space>
-     
-   
-      <n-divider>상세 내용</n-divider>
-      <div class="text-gray-700">
-        로그 모니터링 시스템을 점검하였으며, 이상 징후는 발견되지 않았습니다.
-      </div>
-    </n-space>
-  </n-card> -->
-
 </template>
-
 
 <style scoped>
 </style>
-
-
 
 <script setup>
 
@@ -220,13 +209,12 @@ import TextAlign from '@tiptap/extension-text-align'
 import Highlight from '@tiptap/extension-highlight'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
-
 import { NButton } from 'naive-ui'
+import { useMessage } from 'naive-ui'
 
 // Ionicons
 import { IonIcon } from '@ionic/vue'
 import { textOutline, ellipsisHorizontalOutline, removeOutline, listOutline, linkOutline } from 'ionicons/icons'
-
 
 // 할일데이터
 import { useWorkStore } from '~/stores/work';
@@ -235,15 +223,20 @@ import { aboutScenarios, aboutUpdateScenarios } from '~/utils/prompts/about_sece
 
 const workStore = useWorkStore()
 const works = workStore.works
+const message = useMessage()
+const submitToLeader = ref(false);
 
 // 수정할 주간보고 값
 const checkedValue = ref('')  // 기본값 설정
 function handleChange(e) {
   checkedValue.value = e.target.value
-  console.log('선택된 값:', checkedValue.value)
 }
 
-console.log(checkedValue.value)
+function submitCallback () {
+     message.success('제출되었습니다.');
+}
+
+
 
 const extensions = [
   StarterKit.configure({
@@ -344,17 +337,12 @@ function extractSummaryFromHTML(html) {
   return summary;
 }
 
-
-/** 제출 처리 **/
-
 /** 제출 처리 **/
 async function submitAI( val) {
-  if(val =='default'){
-    aiText.value = '주간보고 작성해줘';
-  }else if(val == 'all'){
-    aiText.value = '주간보고 취합해줘';
+  
+  if(val !='default' && val != 'all'){
+    if (!aiText.value.trim() || loading.value) return;
   }
-  if (!aiText.value.trim() || loading.value) return;
 
   let prompt = []
 
@@ -364,26 +352,32 @@ async function submitAI( val) {
          return;
       }
       let summarizedText = '';
+      let textContent = '';
+      let beforeWeek = '';
+      let afaterWeek = '';
       if(checkedValue.value == 'thisweek'){
           if(editorThis.getHTML().indexOf('금주 업무 내용을 작성하세요') != -1){
             alert("금주 작성된 주간보고가 없습니다");
             return 
           }
-         let textContent = editorThis.getHTML();
-         summarizedText = extractSummaryFromHTML(textContent);
-     
+         textContent = editorThis.getHTML();
+         beforeWeek  =thisWeekStart; afaterWeek = thisWeekEnd;
       }else{
           if(editorNext.getHTML().indexOf('차주 계획을 작성하세요') != -1){
             alert("차주 작성된 주간보고가 없습니다");
             return 
           }
-          textContent = editorNext.getHTML().replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-         
+          textContent = editorNext.getHTML();
+          beforeWeek  = nextWeekStart; afaterWeek = nextWeekEnd;
       }
-      const thisWeekWorks2 = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
-            .map((work, idx) => {   
-              const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-        return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+      summarizedText = extractSummaryFromHTML(textContent);
+
+      const thisWeekWorks2 = 
+                    works.filter(work => isWithin(work.startDate, beforeWeek, afaterWeek)
+                                     || isWithin(work.endDate, beforeWeek, afaterWeek))
+                        .map((work, idx) => {   
+                          const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                      return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
       })
       .join("\n\n");
 
@@ -430,27 +424,29 @@ async function submitAI( val) {
       }
     }else{
       // 주간 필터링
-      const thisWeekWorks = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd))
-                      .map((work, idx) => {
-                      const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                      return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-                    })
-                    .join("\n\n");
-      const nextWeekWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd))  .map((work, idx) => {
+      const thisWeekWorks = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd) 
+                                          || 
+                                        isWithin(work.endDate, thisWeekStart, thisWeekEnd))
+                            .map((work, idx) => {
                             const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                            return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+                            return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
                           })
                           .join("\n\n");
-
-
-
+    
+      let request = '';
+      if(val =='default'){
+         request = '주간보고 작성해줘';
+      }else if(val == 'all'){
+         request = '주간보고 취합해줘 작성해줘';
+      }
+                          
       // 금주 주간보고
       let messages = aboutScenarios
       .replace('{today}', today) 
       .replace('{tasks}', JSON.stringify(thisWeekWorks))
-         + `\n\n[사용자 요청]\n${aiText.value}`;
+       + `\n\n[사용자 요청]\n${request}`;
 
-      prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks + messages });
+      prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(thisWeekWorks) + messages });
 
   
     let res = await fetch('/api/bedrock-common', {
@@ -488,14 +484,24 @@ async function submitAI( val) {
     }
 
 
+    const nextWeekWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd)       
+                                        || 
+                                      isWithin(work.endDate, nextWeekStart, nextWeekEnd))
+                        .map((work, idx) => {
+                          const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                          return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+                        })
+                        .join("\n\n");
+
     // 차주 주간보고
     messages = aboutScenarios
       .replace('{today}', today)
       .replace('{tasks}', JSON.stringify(nextWeekWorks))
+        + `\n\n[사용자 요청]\n${request}`;
 
 
     prompt = [];
-    prompt.push({"role": "user", "content": "\n\n업무목록:" + nextWeekWorks + messages });
+    prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(nextWeekWorks) + messages });
 
 
     res = await fetch('/api/bedrock-common', {
