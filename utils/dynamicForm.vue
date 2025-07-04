@@ -22,29 +22,30 @@
           {{ formatValue(field, localModel[field.key]) }}
         </div>
       </div>
+
+      <!-- ✅ 보기 모드: lineItemSections가 존재할 때 추가 렌더링 -->
+      <div v-if="isViewMode && lineItemSections?.length" class="space-y-6 mt-8 md:col-span-3">
+        <div
+          v-for="(section, sIndex) in lineItemSections"
+          :key="'section-' + sIndex"
+          class="border-t pt-6"
+        >
+          <h4 class="text-base font-bold text-slate-600 mb-2">
+            {{ section.title }}
+          </h4>
+          <n-data-table
+            :columns="section.columns"
+            :data="localModel[section.key] || []"
+            :bordered="true"
+            :scroll-x="1000"
+          />
+        </div>
+      </div>
+
       <div class="md:col-span-3 pt-4 flex justify-end border-t mt-4">
         <n-button type="default" @click="isViewMode = false">
           수정하기
         </n-button>
-      </div>
-    </div>
-
-    <!-- ✅ 보기 모드: lineItemSections가 존재할 때 추가 렌더링 -->
-    <div v-if="isViewMode && lineItemSections?.length" class="space-y-6 mt-8">
-      <div
-        v-for="(section, sIndex) in lineItemSections"
-        :key="'section-' + sIndex"
-        class="border-t pt-6"
-      >
-        <h4 class="text-base font-bold text-slate-600 mb-2">
-          {{ section.title }}
-        </h4>
-        <n-data-table
-          :columns="section.columns"
-          :data="localModel[section.key] || []"
-          :bordered="true"
-          :scroll-x="1000"
-        />
       </div>
     </div>
 
@@ -78,6 +79,37 @@
           class="w-full"
         />
       </n-form-item>
+
+      <!-- ✅ 보기 모드: lineItemSections가 존재할 때 추가 렌더링 -->
+      <div v-if="isViewMode == false && lineItemSections?.length" class="md:col-span-3 space-y-6 mt-8">
+        
+        
+        
+        <div
+          v-for="(section, sIndex) in lineItemSections"
+          :key="'section-' + sIndex"
+          class="pt-0"
+        >
+
+          <div class="pt-4 flex justify-between border-t mt-0 mb-0">
+            <h4 class="text-base font-bold text-slate-600 mb-2">
+                {{ section.title }}
+              </h4>
+
+            <n-button strong secondary type="primary" size="small" >
+              추가
+            </n-button>
+          </div>
+
+          <n-data-table
+            :columns="section.columns"
+            :data="localModel[section.key] || []"
+            :bordered="true"
+            :scroll-x="1000"
+          />
+        </div>
+      </div>
+
 
       <div class="md:col-span-3 pt-4 flex justify-end border-t mt-4">
         <n-button type="primary" size="large" @click="onSubmit">
@@ -249,7 +281,7 @@ const formRules = computed(() => {
 const onSubmit = async () => {
   try {
     await formRef.value?.validate()
-    message.success('✅ 제출이 완료되었습니다.')
+    message.success('제출이 완료되었습니다.')
     isViewMode.value = true
   } catch (err) {
     console.warn('❌ 유효성 실패:', err)

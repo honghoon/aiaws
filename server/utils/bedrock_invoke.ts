@@ -43,7 +43,8 @@ export async function sendClaudeResponseInvoke(messages: ClaudeMessage[]) {
     const completion = result.content[0].text;
     return { completion };
   }catch(e){
-    console.log(e)
+    console.log("sendClaudeResponseInvoke Error : ", e)
+    throw e; 
   }
 
 

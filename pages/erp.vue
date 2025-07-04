@@ -43,7 +43,7 @@
                   >
                     {{ item.content }}
                   </p>
-                  <n-space vertical v-if="item.contentType === 'proc' || item.contentType === 'text'">
+                  <n-space vertical v-if="(item.contentType === 'proc' || item.contentType === 'text') || !item.end || item.end != true">
                     <n-skeleton text :repeat="1" width="40%"/> 
                     <n-skeleton text :repeat="1" width="80%" height="80px" /> 
                     <n-skeleton text :repeat="1" width="60%"/> 
@@ -59,6 +59,7 @@
                     :columns="item.col"
                     :tableRowData="item.tableRowData"
                     :tableTitle="item.title"
+                    :detailFunction="detailFunction"
                   />
                 </div>
 
@@ -84,6 +85,7 @@
                     :schema="item.schema"
                     :modelValue="item.modelValue"
                     :title="item.title"
+                    :lineItemSections = "item.lineItemSections" 
                   />
                 </div>
 
@@ -152,22 +154,23 @@
       
       <textarea
         v-model="aiText"
+        ref="textareaRef"
         rows="4"
-        class="shadow-md mt-3 w-full resize-none rounded-lg focus:ring-2 focus:ring-blue-400 transition duration-200 ease-in-out placeholder-slate-400 bg-gray-100 px-3 py-2 pr-10 pl-15 text-sm focus:outline-none text-slate-500"
+        class="!absolute pt-3 pb-3 w-[calc(100%-3rem)] pr-10 pl-15 bottom-5 shadow-md overflow-y-hidden resize-none  rounded-lg focus:ring-2 focus:ring-blue-400 transition duration-200 ease-in-out placeholder-slate-400 bg-gray-100 px-3 text-sm focus:outline-none text-slate-500"
         placeholder="AI에게 물어보세요..."
         @keydown.enter.exact="send_chat"
         @keydown.shift.enter.stop
-        :style="{ 'max-height': textareaMaxHeight + 'px' }"
+        @input="autoResize"
       ></textarea>
       
-      <n-button @click="active = true" strong secondary circle type="info" class="absolute !bottom-15 left-3">
+      <n-button @click="active = true" strong secondary circle type="info" class="!absolute !bottom-13 left-8">
         <template #icon>
           <n-icon><Apps /></n-icon>
         </template>
       </n-button>
 
       <!-- 보내기 버튼 (아이콘) -->
-      <n-button @click="send_chat" strong secondary type="success" circle class="!absolute !bottom-20 right-8">
+      <n-button @click="send_chat" strong secondary type="success" circle class="!absolute !bottom-13 right-8">
         <template #icon>
           <n-icon :size="26"><ArrowUpCircle /></n-icon> <!-- 기본보다 큼 -->
         </template>
@@ -178,13 +181,20 @@
   
   <n-drawer v-model:show="active" :width="350" placement="left">
     <n-drawer-content>
-      <n-menu
-          :collapsed-width="64"
-          :collapsed-icon-size="22"
-          :options.value="transformedMenuOptions"
-          default-expanded-keys="ERP"
-          @update:value="handleMenuClick"
-      />
+      <div class="flex flex-col gap-0">
+        <div>
+          <img :src="logo" alt="AIW Logo" class="h-[30px] ml-3"/>
+        </div>
+        <n-divider class="m-0 p-0 gap-0"/>
+        <n-menu
+            :collapsed-width="64"
+            :collapsed-icon-size="22"
+            :options.value="transformedMenuOptions"
+            default-expanded-keys="ERP"
+            @update:value="handleMenuClick"
+            :accordion="true"
+        />
+      </div>
     </n-drawer-content>
   </n-drawer>
 
@@ -207,8 +217,22 @@ import hljs from "highlight.js";
 import mila from "markdown-it-link-attributes";
 import { MdPreview } from "md-editor-v3";
 import "md-editor-v3/lib/preview.css";
+import logo from '@/assets/images/logov2.png'
 
 const active  = ref(false)
+const textareaRef = ref(null);
+
+const detailFunction = (event)=>{
+  aiText.value = event
+  send_chat()
+}
+
+const autoResize = () => {
+  const el = textareaRef.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
 
 const md = new MarkdownIt({
   html: true, // HTML 태그 허용
@@ -226,63 +250,148 @@ const transformedMenuOptions = ref([]);
 
 const menuOptions = [
   {
-      label: 'ERP',
-      key: 'ERP',
-      icon: 'NewspaperOutline',
-      children: [
+    label: 'ERP',
+    key: 'ERP',
+    icon: 'NewspaperOutline',
+    children: [
       {
         label: '법인카드 사용현황',
-        key: ''
+        key: '', icon:"ChatboxEllipses"
+        
       },
       {
         label: '법인카드 전표 처리',
-        key: ''
+        key: '', icon:"ChatboxEllipses"
       },
       {
         label: '판매현황',
-        key: '6월 판매현황을 상세히 보여줘'
+        key: '6월 판매현황을 상세히 보여줘', icon:"ChatboxEllipses"
       },
       {
         label: '제품별 판매현황',
-        key: '6월 제품별 판매현황을 분석해줘 TOP10'
+        key: '6월 제품별 판매현황을 분석해줘 TOP10', icon:"ChatboxEllipses"
       },
       {
         label: '고객별 판매현황',
-        key: '6월 고객별 판매현황을 분석해줘'
+        key: '6월 고객별 판매현황을 분석해줘', icon:"ChatboxEllipses"
       },
       {
         label: '판매오더 상세 확인',
-        key: 'SO20250630-0010 판매정보를 상세히 알려줘'
+        key: 'SO20250630-0010 판매정보를 상세히 알려줘', icon:"ChatboxEllipses"
       },
     ]
   },
   {
-      label: 'WRMS',
-      key: 'about6',
-      icon: 'NewspaperOutline'
+    label: 'WRMS',
+    key: 'about6',
+    icon: 'CardOutline',
+    children: [
+      { label: '고객 문의 처리 현황', key: '최근 고객 문의 처리 현황을 알려줘' , icon:"ChatboxEllipses"},
+      { label: '미처리 문의 목록', key: '현재 미처리된 고객 문의가 뭐가 있는지 보여줘' , icon:"ChatboxEllipses"},
+      { label: 'CS 접수 유형 통계', key: 'CS 접수 유형별 통계를 보여줘' , icon:"ChatboxEllipses"},
+      { label: '고객 만족도 분석', key: '최근 고객 만족도 평가 결과를 분석해줘' , icon:"ChatboxEllipses"},
+      { label: '고객 불만 건수 변화', key: '고객 불만 접수 건수의 월별 추이를 보여줘' , icon:"ChatboxEllipses"},
+      { label: '처리 시간 평균 분석', key: '고객 문의 평균 처리 시간을 분석해줘' , icon:"ChatboxEllipses"},
+      { label: '상담원별 처리 건수', key: '상담원별 고객 문의 처리 건수를 알려줘' , icon:"ChatboxEllipses"},
+      { label: '긴급 문의 현황', key: '긴급 문의 처리 현황을 알려줘' , icon:"ChatboxEllipses"},
+      { label: '해결율 분석', key: 'CS 해결율 통계를 보여줘' , icon:"ChatboxEllipses"},
+      { label: 'VOC 트렌드 분석', key: '최근 3개월 VOC 트렌드를 분석해줘' , icon:"ChatboxEllipses"},
+      { label: '반복 발생 이슈', key: '반복적으로 발생한 고객 이슈가 뭐가 있는지 알려줘' , icon:"ChatboxEllipses"}
+    ]
   },
   {
-      label: 'WDMS',
-      key: 'about5',
-      icon: 'NewspaperOutline'
+    label: 'WDMS',
+    key: 'about5',
+    icon: 'CarOutline',
+    children: [
+      { label: '문서 보관 현황', key: '최근 등록된 문서 현황을 알려줘', icon:"ChatboxEllipses" },
+      { label: '보존 연한 만료 문서', key: '보존 연한이 지난 문서를 확인하고 싶어', icon:"ChatboxEllipses" },
+      { label: '문서별 다운로드 현황', key: '가장 많이 다운로드된 문서를 알려줘', icon:"ChatboxEllipses" },
+      { label: '업무별 문서 분포', key: '업무별 문서 분포 통계를 보여줘', icon:"ChatboxEllipses" },
+      { label: '중복 문서 탐지', key: '중복된 문서를 탐지해줘', icon:"ChatboxEllipses" },
+      { label: '개인 문서 보관량', key: '사용자별 문서 저장 용량을 비교해줘', icon:"ChatboxEllipses" },
+      { label: '문서 승인 처리 현황', key: '문서 승인 대기 및 완료 현황을 알려줘' , icon:"ChatboxEllipses"},
+      { label: '폴더별 문서 수', key: '폴더별 문서 개수를 알려줘' , icon:"ChatboxEllipses"},
+      { label: '최근 수정 문서', key: '최근 수정된 문서를 나열해줘' , icon:"ChatboxEllipses"},
+      { label: '보안 등급 문서 리스트', key: '보안 등급이 높은 문서 목록을 보여줘' , icon:"ChatboxEllipses"},
+      { label: '삭제 예정 문서', key: '삭제 예정인 문서 목록을 알려줘' , icon:"ChatboxEllipses"}
+    ]
   },
   {
-      label: 'PMS',
-      key: 'about4',
-      icon: 'NewspaperOutline'
+    label: 'PMS',
+    key: 'about4',
+    icon: 'GridOutline',
+    children: [
+      { label: '진행 중인 프로젝트', key: '현재 진행 중인 프로젝트를 알려줘', icon:"ChatboxEllipses" },
+      { label: '완료된 프로젝트 리스트', key: '최근 완료된 프로젝트 목록을 보여줘', icon:"ChatboxEllipses" },
+      { label: '프로젝트별 일정 요약', key: '프로젝트별 주요 일정과 진행률을 요약해줘', icon:"ChatboxEllipses" },
+      { label: '지연 프로젝트 분석', key: '지연된 프로젝트와 그 원인을 분석해줘' , icon:"ChatboxEllipses"},
+      { label: '담당자별 프로젝트 수', key: '담당자별 프로젝트 참여 현황을 알려줘' , icon:"ChatboxEllipses"},
+      { label: '예산 초과 프로젝트', key: '예산을 초과한 프로젝트를 알려줘' , icon:"ChatboxEllipses"},
+      { label: '팀별 프로젝트 분포', key: '팀별 프로젝트 분포를 알려줘' , icon:"ChatboxEllipses"},
+      { label: '주요 마일스톤 리스트', key: '다가오는 주요 마일스톤을 알려줘' , icon:"ChatboxEllipses"},
+      { label: '일별 작업 할당량', key: '일별 작업 할당량을 알려줘', icon:"ChatboxEllipses" },
+      { label: '전체 프로젝트 진행률', key: '전체 프로젝트의 평균 진행률을 보여줘', icon:"ChatboxEllipses" },
+      { label: '긴급 프로젝트 식별', key: '긴급하게 관리가 필요한 프로젝트가 있는지 알려줘', icon:"ChatboxEllipses" }
+    ]
   },
   {
-      label: 'BI',
-      key: 'about3',
-      icon: 'NewspaperOutline',
-      to: '/erp'
+    label: 'BI',
+    key: 'about3',
+    icon: 'CellularOutline',
+    to: '/erp',
+    children: [
+      { label: '매출 분석 리포트', key: '최근 6개월간 매출 분석 리포트를 보여줘', icon:"ChatboxEllipses" },
+      { label: '고객별 이탈률', key: '고객별 이탈률을 분석해줘', icon:"ChatboxEllipses" },
+      { label: '제품 카테고리별 성과', key: '제품 카테고리별 성과를 보여줘' , icon:"ChatboxEllipses"},
+      { label: '지역별 매출 비교', key: '지역별 매출 데이터를 비교해줘', icon:"ChatboxEllipses" },
+      { label: '매출 목표 달성률', key: '부서별 매출 목표 달성률을 분석해줘', icon:"ChatboxEllipses" },
+      { label: '시계열 트렌드 분석', key: '시계열 기반으로 주요 지표 트렌드를 보여줘', icon:"ChatboxEllipses" },
+      { label: '고객 세분화 리포트', key: '고객을 세그먼트별로 분류해줘' , icon:"ChatboxEllipses"},
+      { label: '이익률 분석', key: '월별 이익률 추이를 알려줘', icon:"ChatboxEllipses" },
+      { label: '구매 주기 분석', key: '고객의 평균 구매 주기를 분석해줘' , icon:"ChatboxEllipses"},
+      { label: '상품별 전환율', key: '상품별 전환율 데이터를 보여줘' , icon:"ChatboxEllipses"},
+      { label: '경쟁사 대비 분석', key: '경쟁사 대비 우리 실적을 분석해줘', icon:"ChatboxEllipses" }
+    ]
   },
   {
-      label: '그룹웨어',
-      key: 'about2',
-      icon: 'NewspaperOutline'
+    label: '그룹웨어',
+    key: 'about2',
+    icon: 'CalendarOutline',
+    children: [
+      { label: '공지사항 조회', key: '최근 공지사항 목록을 알려줘' , icon:"ChatboxEllipses"},
+      { label: '결재 대기 문서', key: '나에게 결재 요청된 문서를 확인해줘' , icon:"ChatboxEllipses"},
+      { label: '부재중 메일 확인', key: '내가 부재 중일 때 온 메일을 알려줘', icon:"ChatboxEllipses" },
+      { label: '전자결재 통계', key: '전자결재 사용 현황을 분석해줘' , icon:"ChatboxEllipses"},
+      { label: '조직도 조회', key: '우리 회사 조직도를 보여줘' , icon:"ChatboxEllipses"},
+      { label: '부서별 결재 처리 속도', key: '부서별 결재 처리 속도를 알려줘', icon:"ChatboxEllipses" },
+      { label: '출퇴근 기록 요약', key: '최근 출퇴근 기록을 보여줘' , icon:"ChatboxEllipses"},
+      { label: '회의실 예약 현황', key: '오늘 예약된 회의실 현황을 알려줘', icon:"ChatboxEllipses" },
+      { label: '업무 일정 통합 보기', key: '이번 주 내 일정 전체를 통합해서 보여줘' , icon:"ChatboxEllipses"},
+      { label: '연차 사용 현황', key: '내 연차 사용 현황을 알려줘' , icon:"ChatboxEllipses"},
+      { label: '생일/기념일 알림', key: '이번 달 생일자나 기념일 있는 직원 알려줘' , icon:"ChatboxEllipses"}
+    ]
   },
+  {
+  label: 'GAM',
+  key: 'aboutGAM',
+  icon: 'ShieldCheckmarkOutline',
+  children: [
+    { label: '계정 권한 현황', key: '현재 시스템 사용자별 계정 권한 현황을 알려줘', icon: 'ChatboxEllipses' },
+    { label: '권한 변경 이력', key: '최근 3개월간 권한 변경 이력을 보여줘', icon: 'ChatboxEllipses' },
+    { label: '부서별 권한 차이 분석', key: '부서별 권한 차이를 분석해줘', icon: 'ChatboxEllipses' },
+    { label: '비인가 접근 시도 로그', key: '비인가 접근 시도가 있었는지 확인해줘', icon: 'ChatboxEllipses' },
+    { label: '감사 대상 계정 리스트', key: '감사 대상 계정들을 알려줘', icon: 'ChatboxEllipses' },
+    { label: '업무별 권한 적합성 분석', key: '업무별 권한 적합성 여부를 판단해줘', icon: 'ChatboxEllipses' },
+    { label: '로그인 실패 추이', key: '로그인 실패 발생 현황을 분석해줘', icon: 'ChatboxEllipses' },
+    { label: '접근 로그 통계', key: '최근 시스템 접근 로그 통계를 보여줘', icon: 'ChatboxEllipses' },
+    { label: '권한 만료 예정자 목록', key: '곧 권한이 만료될 사용자를 알려줘', icon: 'ChatboxEllipses' },
+    { label: '내부통제 위반 사례', key: '최근 내부통제 위반 사례를 보여줘', icon: 'ChatboxEllipses' },
+    { label: '정책 위반 알림 내역', key: '시스템 정책 위반 알림 내역을 알려줘', icon: 'ChatboxEllipses' }
+  ]
+}
 ];
+
 
 async function loadIcon(iconName) {
   try {
@@ -606,6 +715,14 @@ const send_chat = async () => {
         continue;
       }
 
+      if (text.includes("--error--")) {
+        chatType = "error";
+        chatResult = ""; // 챗 초기화
+        continue
+      }
+
+      
+
       if (text.includes(messgageKey)) {
         chatType = "text";
         chatResult = ""; // 챗 초기화
@@ -644,7 +761,9 @@ const send_chat = async () => {
     if (is_end == true) {
       const parts = fullchatResult.split(jsonKey);
       const afterJson = parts.length > 1 ? parts[1].trim() : "";
-      console.log(aiResult.value[aiResult.value.length - 1].content);
+
+      aiResult.value[aiResult.value.length - 1].end = true;
+
       if (afterJson !== "") {
         let tableRowData = JSON.parse(afterJson);
 
@@ -661,10 +780,11 @@ const send_chat = async () => {
           aiResult.value[aiResult.value.length - 1].contentType =
             tableRowData.type;
           aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
-          aiResult.value[aiResult.value.length - 1].schema =
-            tableRowData.schema;
-          aiResult.value[aiResult.value.length - 1].modelValue =
-            tableRowData.modelValue;
+          aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
+          aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
+          if (tableRowData.lineItemSections){
+            aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+          }
         }
 
         if (tableRowData.type == "chart") {
@@ -738,6 +858,14 @@ const renderedHtml = (html) => {
 onMounted(async () => {
   await transMenuoption();
 });
+
+watch(aiText, () => {
+  nextTick(() => {
+    autoResize();
+  });
+});
+
+
 </script>
 
 <style scoped>

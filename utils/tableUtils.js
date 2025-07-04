@@ -7,6 +7,9 @@ export function createColumns(rawColumns, searchFn = null) {
   let tableWidth = 0;
   let index = 0;
   for (let item of Array.isArray(rawColumns) ? rawColumns : []) {
+    
+    index += 1
+
     if (item.width) {
       tableWidth = tableWidth + item.width;
     } else {
@@ -19,9 +22,11 @@ export function createColumns(rawColumns, searchFn = null) {
     }
 
     const temp = { ...item };
+    
     if (item.render) {
       temp.render = item.render;
     }
+
     temp.title = item.title ? item.title : "";
     temp.key = item.key ? item.key : "";
     temp.className = "!text-slate-500 text-center";
@@ -38,10 +43,36 @@ export function createColumns(rawColumns, searchFn = null) {
     if (item.sorter) {
       temp.sorter = item.sorter;
     }
+
     temp.align = "left";
     
     if (item.align) {
       temp.align = item.align;
+    }
+
+    if (index == 1 && searchFn != null) {
+      const key = temp.key;
+      temp.render = (row) => {
+        const value = row?.[key];
+        if (!value) return '';
+
+        return h(
+          'a',
+          {
+            style: {
+              color: '#2563eb',
+              textDecoration: 'underline',
+              cursor: 'pointer'
+            },
+            onClick: () => {
+              if (typeof searchFn === 'function') {
+                searchFn(value);
+              }
+            }
+          },
+          value
+        );
+      };
     }
 
     temp.fixed = item.fixed ? item.fixed : false;

@@ -37,10 +37,11 @@
                       @expand="collapsed = false"
                   >
                       <n-menu
-                          :collapsed-width="64"
-                          :collapsed-icon-size="22"
-                          :options.value="transformedMenuOptions"
-                           @update:value="handleMenuClick"
+                        :collapsed-width="64"
+                        :collapsed-icon-size="22"
+                        :options.value="transformedMenuOptions"
+                        @update:value="handleMenuClick"
+                        :accordion="true"
                       />
                   </n-layout-sider>
                   <n-layout class="flex-1 overflow-auto min-h-0" content-style="background-color: #f1f4f9;">
@@ -64,7 +65,7 @@ import { MenuSharp} from '@vicons/ionicons5';
 import { NIcon } from 'naive-ui';
 import { defineComponent, h, ref } from 'vue';
 import { useRouter } from "vue-router";
-import logo from '@/assets/images/aiw_logo_clean.svg'
+import logo from '@/assets/images/logov2.png'
 
 const router = useRouter(); 
 
@@ -99,13 +100,13 @@ const menuOptions = [
       to: '/about',
   },
   {
-      label: '할일',
+      label: 'TASK',
       key: 'KanbanBoard',
       icon: 'CalendarNumberOutline', 
       to: '/KanbanBoard',
   },
   {
-      label: 'ERP',
+      label: 'AI HUB',
       key: 'about',
       icon: 'NewspaperOutline',
       to: '/erp',

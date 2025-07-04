@@ -1,12 +1,13 @@
 import { sendClaudeResponseInvoke } from  '~/server/utils/bedrock_invoke';
 import { sales_order_detail} from '~/server/templates/sales_order_detail.js';
+import { sales_order_modify} from '~/server/templates/sales_order_modify';
 import { sales_order_select_end} from '~/server/templates/sales_order_select_end.js';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
 const jsonKey = "\n--json--\n";
 
-export const send7Proc = async (writer, history, toMessage) => {
+export const send8Proc = async (writer, history, toMessage) => {
 
   const today = new Date().toISOString().split('T')[0]; // "2025-06-26"
   let messages = sales_order_detail
@@ -77,6 +78,7 @@ export const send7Proc = async (writer, history, toMessage) => {
 
   let formattedResult = resultDataSet;
 
+  
   console.log("분석 쿼리 실행 결과 Mongo DB Result Set: ", formattedResult)
   console.log("기준 쿼리 정보", queryObj)
 
@@ -88,14 +90,66 @@ export const send7Proc = async (writer, history, toMessage) => {
     return;
   }
 
+  // 제품정보 조회
+  const productDataSet = await db
+    .collection("products").find({}).toArray()
+
+  messages = sales_order_modify
+      .replace('{history}', history)
+      .replace('{toMessage}', toMessage)
+      .replace('{today}', today)
+      .replace('{products}', JSON.stringify(productDataSet, null, 2))
+      .replace('{orignData}', JSON.stringify(formattedResult, null, 2));
+
+  sendPrompt = [{"role": "user", "content" : messages}]   
+
+  await streamFallbackMessageJump(writer, prockey)
+  await streamFallbackMessageJump(writer, '데이터를 분석하고 있습니다. 잠시만 기달려주세요.')
+
+  let resultModiyData;
+
+  try{
+    resultInvoke= await sendClaudeResponseInvoke(sendPrompt)
+    resultModiyData = resultInvoke.completion;
+  }catch(e){
+    await streamFallbackMessageJump(writer, "--error--")
+    await streamFallbackMessageJump(writer, e)
+    return
+  }
+
+  resultModiyData = resultModiyData
+    .replace(/```json\s*/gi, '')  // 시작 태그 제거
+    .replace(/```/g, '');         // 종료 태그 제거
+
+  let resultModiyJSON;
+  try{
+    resultModiyJSON = JSON.parse(resultModiyData)
+  }catch(e){
+    await streamFallbackMessageJump(writer, "--error--")
+    await streamFallbackMessageJump(writer, '데이터 변환에 실패하였습니다.')
+    await streamFallbackMessageJump(writer, e)
+    return
+  }
+
+  let updatedOrder
+  
+  try{
+    updatedOrder = applyPatchToOrder(formattedResult, resultModiyJSON, productDataSet);
+  }catch(e){
+    await streamFallbackMessageJump(writer, "--error--")
+    await streamFallbackMessageJump(writer, '데이터 변환에 실패하였습니다.')
+    await streamFallbackMessageJump(writer, e)
+    return
+  }
+  
+
+  console.log("## 변환 완료 ##" , updatedOrder)
+
   messages = sales_order_select_end
           .replace('{history}', history)
           .replace('{toMessage}', toMessage)
           .replace('{today}', today)
-          .replace('{results}', JSON.stringify(formattedResult, null, 2));
-  
-
-  console.log(messages)
+          .replace('{results}', "아래와 같이 데이터 변경을 하였습니다. 아래 제출 버튼을 클릭하여 반영 부탁드립니다.\n" + JSON.stringify(resultModiyJSON, null, 2));
 
   sendPrompt = [{"role": "user", "content" : messages}]
 
@@ -106,7 +160,7 @@ export const send7Proc = async (writer, history, toMessage) => {
   // 마지막 결과 Data Set JSON 반환
   let sendResponseData = {
       "type":"form",
-      "modelValue":formattedResult[0],
+      "modelValue":resultModiyJSON,
       "scenrios":3,
       "schema": schema,
       "title": queryObj.title,
@@ -272,3 +326,77 @@ const product_colums = [
     ]
   }
 ] 
+
+function applyPatchToOrder(originalData, patchList, products) {
+  const cloned = structuredClone(originalData); // 원본 보호
+
+  for (const patch of patchList) {
+    const { type, key, value } = patch;
+
+    if (!key) continue;
+
+    const path = key.replace(/\[(\d+)\]/g, '.$1').split('.');
+    let target = cloned;
+    for (let i = 0; i < path.length - 1; i++) {
+      const segment = path[i];
+      if (!(segment in target)) {
+        target[segment] = /^\d+$/.test(path[i + 1]) ? [] : {};
+      }
+      target = target[segment];
+    }
+
+    const lastKey = path[path.length - 1];
+
+    // 🔁 수정
+    if (type === 'M') {
+      target[lastKey] = value;
+    }
+
+    // ➕ 추가 (lineItems 에 제품 추가)
+    else if (type === 'A' && key === 'lineItems') {
+      const { productCode, quantity } = value;
+
+      const product = products.find(p => p.productCode === productCode);
+      if (!product) {
+        console.warn(`❗제품코드 ${productCode} 를 products 목록에서 찾을 수 없습니다.`);
+        continue;
+      }
+
+      const taxAmount = Math.round(product.standardPrice * quantity * product.taxRate);
+      const amount = product.standardPrice * quantity;
+
+      const newItem = {
+        itemNumber: target.length > 0 ? (Math.max(...target.map(i => i.itemNumber)) + 10) : 10,
+        productCode: product.productCode,
+        productName: product.productName,
+        quantity,
+        uom: product.uom,
+        unitPrice: product.standardPrice,
+        amount,
+        taxRate: product.taxRate,
+        taxAmount
+      };
+
+      target.push(newItem);
+    }
+
+    // ➖ 삭제 (lineItems[n] 삭제)
+    else if (type === 'D' && path[0] === 'lineItems') {
+      const index = parseInt(path[1]);
+      if (!isNaN(index) && Array.isArray(cloned.lineItems)) {
+        cloned.lineItems.splice(index, 1);
+      }
+    }
+  }
+
+  // 💰 총액 재계산
+  if (Array.isArray(cloned.lineItems)) {
+    const totalAmount = cloned.lineItems.reduce((sum, item) => sum + item.amount, 0);
+    const totalTax = cloned.lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
+    cloned.totalAmount = totalAmount;
+    cloned.totalTax = totalTax;
+    cloned.grandTotal = totalAmount + totalTax;
+  }
+
+  return cloned;
+}

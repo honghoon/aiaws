@@ -125,9 +125,20 @@ export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, m
     }),
   });
 
-  const response = await client.send(command);
 
-  if (!response.body) {
+  let response = null;
+
+  try{
+    response = await client.send(command);
+  }catch(e){
+    console.log(" ## AWS 호출 오류 :", e)
+    writer.write("--error--");
+    writer.write("## AWS 호출 오류 : "+ e.toString());
+    return
+  }
+  
+
+  if (response == null || !response.body) {
     throw new Error('Claude 응답 스트림이 비어있습니다.');
   }
 

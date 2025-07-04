@@ -55,9 +55,14 @@ import { createColumns } from '~/utils/tableUtils'
 import { SendOutline } from '@vicons/ionicons5'
 
 const init = ref(false);
-
 const tableColumns = ref(null)
 const tableWidth = ref(0)
+
+const searchFt = (event)=>{
+  if (props.detailFunction){
+    props.detailFunction(event)
+  }
+}
 
 const props = defineProps({
   columns: {
@@ -75,7 +80,8 @@ const props = defineProps({
   edit: {
     type: String,
     default: undefined
-  }
+  },
+  detailFunction:Function
 })
 
 
@@ -98,7 +104,7 @@ function processColumns(columns) {
     init.value = false
     return
   }
-  const { columns: _tableColumns, tableWidth: _tableWidth } = createColumns(columns)
+  const { columns: _tableColumns, tableWidth: _tableWidth } = createColumns(columns, searchFt)
 
 // 이제 tableColumns로 사용
   if (_tableColumns && _tableColumns.length > 0) {
