@@ -423,7 +423,7 @@ async function submitAI( val) {
         loading.value = false;
       }
     }else{
-      // 주간 필터링
+      // 주간 필터링  
       const thisWeekWorks = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd) 
                                           || 
                                         isWithin(work.endDate, thisWeekStart, thisWeekEnd))
