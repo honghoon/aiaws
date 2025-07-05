@@ -3,17 +3,12 @@
     <div class="min-h-[calc(100vh-75px)] bg-white flex flex-col p-6">
       <div class="flex items-center justify-between">
         <div class="flex pb-3 justify-end gap-3 items-center">
-          <n-select
-            placeholder="처리자 검색 조건.."
+          <n-input
             v-model:value="searchUser"
-            :clearable="true"
-            :bordered="false"
-            class="n-select-nowrap"
+            placeholder="처리자 검색 (이름 입력)"
+            @keydown.enter.exact="searchWorks"
+            clearable
             style="width: 300px"
-            value-field="name"
-            label-field="name"
-            multiple
-            :options="users"
           />
           <n-date-picker v-model:value="range" type="daterange" clearable />
         </div>
@@ -22,11 +17,13 @@
           <FileUploadModal
             :show="showFileUploadModal"
             @close="showFileUploadModal = false"
+            :allWorks="allWorks"
+            :works="works"
             @fileUploaded="handleFileUploaded"
           />
           <n-button strong secondary round type="primary" @click="helpRegWork" :loading="helpLoading">HELP(ITSM)</n-button>
           <n-button strong secondary round type="tertiary">등록</n-button>
-          <n-button strong secondary round type="info"> 조회 </n-button>
+          <n-button strong secondary round type="info" @click="searchWorks"> 조회 </n-button>
         </div>
       </div>
 
@@ -500,6 +497,7 @@ import Link from "@tiptap/extension-link";
 import { useWorkStore } from '~/stores/work';
 const workStore = useWorkStore()
 const works = workStore.works
+const allWorks = ref([...works]); // 원본 복사
 
 import { useHelpWorkStore } from '~/stores/helpWork';
 const helpWorkStore = useHelpWorkStore()
@@ -518,10 +516,14 @@ import { useThemeVars } from 'naive-ui';
 import { changeColor } from 'seemly';
 
 const today = new Date();
-const oneMonthAgo = new Date();
-oneMonthAgo.setMonth(today.getMonth() - 1);
 
-const range = ref([oneMonthAgo, today]);
+const threeMonthsAgo = new Date();
+threeMonthsAgo.setMonth(today.getMonth() - 3);
+
+const threeMonthsLater = new Date();
+threeMonthsLater.setMonth(today.getMonth() + 3);
+
+const range = ref([threeMonthsAgo, threeMonthsLater]);
 
 const showInput = ref(false);
 const aiText = ref("");
@@ -645,6 +647,26 @@ const startProgressAnimation = (contentEle) => {
     
     progressState++;
   }, 200);
+};
+
+const searchWorks = function () { 
+  works.splice(0, works.length, ...allWorks.value); //원본데이터를 다시 넣는 형태
+  const hasUser = searchUser.value?.trim(); // 사용자가 입력된 경우
+  const hasRange = range && range.length === 2 && range[0] && range[1]; // 날짜 범위 유효한 경우
+
+  const filtered = allWorks.value.filter((work) => {
+    const userMatched = hasUser ? work.users.join(",").includes(hasUser) : true;
+
+    const dateMatched = (new Date(work.endDate) >= new Date(range.value[0]) &&
+        new Date(work.startDate) <= new Date(range.value[1]))
+
+    return userMatched && dateMatched;
+  });
+
+  // 배열 교체 시 반응성을 유지하기 위해 splice 사용
+  works.splice(0, works.length, ...filtered);
+
+  console.log("🔍 필터 결과:", works.value);
 };
 
 const stopProgressAnimation = (contentEle) => {
@@ -806,8 +828,9 @@ async function helpRegWork() {
     }    
 
     chatResult = cleanClaudeResponse(chatResult);
-    const resultArray = JSON.parse(JSON.stringify(chatResult));
-    works.push(...resultArray); // 기존 업무에 덧붙이기
+    const resultArray = JSON.parse(JSON.stringify(chatResult));    
+    allWorks.value.push(...resultArray); // 기존 업무에 덧붙이기    
+    works.splice(0, works.length, ...allWorks.value); //원본데이터를 다시 넣는 형태
 
   } catch (e) {
     console.error("AI 요청 중 오류 발생:", e);

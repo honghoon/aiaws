@@ -58,17 +58,26 @@ import { fileUploadScnarios, helpRegScnarios } from '~/utils/prompts/dashBoard_s
 import { ref, watch } from 'vue'
 import { useWorkStore } from '~/stores/work';
 
-const workStore = useWorkStore()
-const works = workStore.works
-
 defineOptions({ name: 'FileUploadModal' })
-const props = defineProps({ show: Boolean })
+const props = defineProps({
+  show: Boolean,
+  allWorks: {
+    type: Array,
+    default: () => []
+  },
+  works: {
+    type: Array,
+    default: () => []
+  }
+});
+
 const emit = defineEmits(['close', 'fileUploaded'])
 
 const localShow = ref(props.show)
 const updateMode = ref(false)
 const isDisabled = ref(false)
 const fileList = ref([])
+const todayFormat = new Date().toISOString().split('T')[0].replace(/-/g, '');; // "2025-06-26"
 
 const worksFile = ref([])
 const aiResult = ref([])
@@ -129,14 +138,12 @@ async function submitAI() {
     content: "AI 응답을 기다리는 중...",
   });
 
-  const id = works.length+1;
+  const id = props.works.length+1;
 
-  try {
+  try {    
     const reportsText = worksFile.value.map((text, idx) => `### 보고서 ${idx + 1}:\n${text.trim()}`).join('\n\n');
-
-    const fullPrompt = helpRegScnarios(id, reportsText).trim();
-
-    const prompt = [{ role: "user", content: fullPrompt }];
+    const content = `${helpRegScnarios(id, JSON.stringify(reportsText))}\n\n {today: ${todayFormat}}`;
+    const prompt = [{ role: "user", content: content }];
     
     startProgressAnimation()
     const res = await fetch("/api/bedrock-common", {
@@ -165,7 +172,8 @@ async function submitAI() {
     localShow.value = false;
     chatResult = cleanClaudeResponse(chatResult);
     const resultArray = JSON.parse(JSON.stringify(chatResult));
-    works.push(...resultArray); // 기존 업무에 덧붙이기
+    props.allWorks.push(...resultArray); // 기존 업무에 덧붙이기    
+    props.works.splice(0, props.works.length, ...props.allWorks); //원본데이터를 다시 넣는 형태
   } catch (e) {
     console.error("AI 요청 중 오류 발생:", e);
   } finally {

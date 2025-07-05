@@ -79,6 +79,7 @@ export function fileUploadScnarios(id, reportsText) {
     ]
     
     ⚠️ 반드시 JSON만 출력해 주세요. 설명이나 머리말 없이 JSON 배열만 출력해야 합니다.
+    startDate와 endDate가 없는 경우 시작날짜(startDate)는 today, 종료날짜(endDate)는 한달 뒤로 
 
     보고서 목록:
     ${reportsText}`
