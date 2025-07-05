@@ -33,7 +33,14 @@ export const send2Proc = async (writer, history, toMessage) => {
         await streamFallbackMessageJump(writer, prockey)
         await streamFallbackMessageJump(writer, '데이터를 조회하고 있습니다.\n')
 
-        resultDataSet = await db.collection('corporate_cards_ko').find(queryObj.query).toArray();
+        // 의도와 다르게 쿼리를 작성하는 경우 가 있어 한번 더 판단
+        // slipNumber 키 제거 로직
+        const has7700Prefix = /7700\d*/.test(toMessage);
+        if (!has7700Prefix) {
+          delete queryObj.query.slipNumber;
+        }
+
+        resultDataSet = await db.collection('corporate_cards').find(queryObj.query).toArray();
 
         formattedResult = resultDataSet.map(doc => ({
         ...doc,
@@ -45,7 +52,7 @@ export const send2Proc = async (writer, history, toMessage) => {
         }));
 
         console.log(resultDataSet)
-        resultDataCount = await db.collection('corporate_cards_ko').countDocuments(queryObj.count);
+        resultDataCount = await db.collection('corporate_cards').countDocuments(queryObj.count);
         console.log(resultDataCount)
     }
 
@@ -76,7 +83,7 @@ export const send2Proc = async (writer, history, toMessage) => {
     let sendResponseData = {
         "type":"table_edit",
         "data":formattedResult,
-        "scenrios":1,
+        "scenrios":2,
         "columns": corporate_cardsColumns,
         "title": "법인카드 전표 상신",
     }
@@ -170,9 +177,9 @@ const corporate_cardsColumns = [
     optionLabel: 'name',
     optionValue: 'code',
     options: [
-      { name: '사원', code: 'staff' },
-      { name: '대리', code: 'assistant' },
-      { name: '과장', code: 'manager' }
+      { name: '바디프렌드 ERP 프로젝트', code: 'W-05-54386' },
+      { name: '트렉스타 그룹웨어 프로젝트', code: 'W-03-48580' },
+      { name: '웅진식품 NCP 프로젝트', code: 'W-03-48581' }
     ]
   },
   {

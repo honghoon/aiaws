@@ -86,27 +86,46 @@ corporate_cards
 - MongoDB 쿼리 객체만 반환. 예: { usageDate: { $gte: new Date("2025-05-01") } }
 - "db." 또는 ".find()"는 포함하지 마.
 - 코드 블록 없이 순수한 실행 가능한 쿼리 객체만 문자열로 리턴.
+
+[날짜 출력 형식]
+- 모든 날짜 필드는 쿼리 결과에서 **문자열 형식**으로 명시적으로 출력되어야 하며, 다음 기준을 따릅니다:
+
+1. **일별 집계**일 경우:
+   - \`$dateToString\`을 사용하여 \`"YYYY-MM-DD"\` 형식으로 출력
+   - 예:
+     { "$dateToString": { "format": "%Y-%m-%d", "date": "$usageDate" } }
+
+
+2. **월별 집계**일 경우:
+   - \`"YYYY-MM"\` 형식으로 출력
+   - 예:
+     { "$dateToString": { "format": "%Y-%m", "date": "$usageDate" } }
+
+3. **연도별 집계**일 경우:
+   - "YYYY" 형식으로 출력
+   - 예:
+     { "$dateToString": { "format": "%Y", "date": "$usageDate" } }
+
 [출력 예시]
 {
   "query": {
     "usageDate": {
       "$gte": new Date("2025-05-01"),
       "$lte": new Date("2025-05-31")
-    },
-    "slipNumber": {
-      "$nin": [null, ""]
     }
   },
   "count": {
     "usageDate": {
       "$gte": new Date("2025-05-01"),
       "$lte": new Date("2025-05-31")
-    },
-    "slipNumber": {
-      "$nin": [null, ""]
     }
   },
-  "visualizationType": "table"
+   "visualization": {
+    "type": "table" | "bar" | "pie",             // 결과를 어떻게 시각화할지
+    "xField": "필드명",                          // Bar/Pie 차트의 X축 또는 라벨
+    "yField": "필드명",                          // Bar/Pie 차트의 Y축 또는 값
+    "title": "사용자에게 보여줄 차트 제목"       // ex: "고객별 총 매출 금액"
+  }
 }
 
 [이전 대화 이력]

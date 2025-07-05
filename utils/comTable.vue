@@ -53,10 +53,12 @@
 import { reactive, watch, onMounted } from 'vue'
 import { createColumns } from '~/utils/tableUtils'
 import { SendOutline } from '@vicons/ionicons5'
+import { useMessage} from 'naive-ui'
 
 const init = ref(false);
 const tableColumns = ref(null)
 const tableWidth = ref(0)
+const message = useMessage()
 
 const searchFt = (event)=>{
   if (props.detailFunction){
@@ -139,8 +141,9 @@ const showModal = ref(false)
 
 const onPositiveClick = (tableRowData) => {
   console.log(tableRowData[0].amount);
+  message.success('등록이 완료되었습니다.')
   showModal.value = false;
-
+  
   // 데이터를 전달하고 결과를 받아 화면 창에 표시
 
 };

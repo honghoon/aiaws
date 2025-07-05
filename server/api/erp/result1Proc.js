@@ -27,12 +27,14 @@ export const send1Proc = async (writer, history, toMessage) => {
 
     let resultDataSet = null;
     let resultDataCount = null;
+    let returnType = null;
+    let sendResponseData = null;
 
     if (queryObj.visualizationType === 'table'){
         await streamFallbackMessageJump(writer, prockey)
         await streamFallbackMessageJump(writer, '데이터를 조회하고 있습니다.\n')
 
-        resultDataSet = await db.collection('corporate_cards_ko').find(queryObj.query).toArray();
+        resultDataSet = await db.collection('corporate_cards').find(queryObj.query).toArray();
 
         formattedResult = resultDataSet.map(doc => ({
         ...doc,
@@ -43,9 +45,43 @@ export const send1Proc = async (writer, history, toMessage) => {
         taxAmount: formatAmount(doc.taxAmount),
         }));
 
-        console.log(resultDataSet)
-        resultDataCount = await db.collection('corporate_cards_ko').countDocuments(queryObj.count);
+        returnType = "table";
+
+        console.log(formattedResult)
+        resultDataCount = await db.collection('corporate_cards').countDocuments(queryObj.count);
         console.log(resultDataCount)
+        
+        sendResponseData = {
+          "type":returnType,
+          "data":formattedResult,
+          "scenrios":1,
+          "columns": corporate_cardsColumns,
+          "title": "법인카드 전표 데이터"
+        }
+
+    }else if (queryObj.visualizationType === 'linechart' || queryObj.visualizationType === 'barchart'){
+        await streamFallbackMessageJump(writer, prockey)
+        await streamFallbackMessageJump(writer, '데이터를 조회하고 있습니다.\n')
+
+        resultDataSet = await db.collection('corporate_cards').aggregate(queryObj.aggregate).toArray();
+        console.log(resultDataSet)
+
+        formattedResult = resultDataSet.map(doc => ({
+        ...doc,
+        usageDate: doc._id
+        }));
+        
+        returnType = "chart";
+        console.log(formattedResult)
+        
+        sendResponseData = {
+          "type":returnType,
+          "data":formattedResult,
+          "scenrios":1,
+          "visualization":queryObj.visualization,
+          "chartType":"bar"
+        }
+    
     }
 
     if (formattedResult == null || formattedResult.length == 0){
@@ -71,14 +107,15 @@ export const send1Proc = async (writer, history, toMessage) => {
     // bedrock 스트림으로 결과 답변 요청 stream 실행
     await streamFallbackMessageJumpBedrock(writer, sendPrompt)
 
+    /*
     // 마지막 결과 Data Set JSON 반환
     let sendResponseData = {
-        "type":"table",
+        "type":returnType,
         "data":formattedResult,
         "scenrios":1,
         "columns": corporate_cardsColumns,
         "title": "법인카드 전표 데이터",
-    }
+    }*/
 
     await streamFallbackMessageJump(writer, jsonKey)
     await streamFallbackMessageJump(writer, JSON.stringify(sendResponseData))

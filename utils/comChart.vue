@@ -28,6 +28,8 @@ const props = defineProps({
 
 const type = ref("")
 
+console.log()
+
 const chartData = ref({
   labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
   datasets: [
@@ -69,16 +71,17 @@ const processChart = (param)=>{
         },
         title: {
           display: true,
-          text: param.title
+          text: param.visualization.title
         }
       }
     }
     
+
     let labels = []
     let datasets = [{data:[]}]
     let index = 1
     for(let item of param.data){
-      labels.push(getNested(item,param.xField))
+      labels.push(getNested(item,param.visualization.xField))
       if (param.chartType == 'pie'){
         if (datasets[0].backgroundColor == undefined){
           datasets[0].backgroundColor = []
@@ -87,8 +90,8 @@ const processChart = (param)=>{
       }else{
         datasets[0].backgroundColor = getColor(index)
       }
-      datasets[0].label = param.title
-      datasets[0].data.push(item[param.yField])
+      datasets[0].label = param.visualization.title
+      datasets[0].data.push(item[param.visualization.yField])
       index += 1
     }
 
