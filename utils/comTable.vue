@@ -141,7 +141,16 @@ const showModal = ref(false)
 
 const onPositiveClick = (tableRowData) => {
   console.log(tableRowData[0].amount);
-  message.success('등록이 완료되었습니다.')
+  const prefix = "770001";
+  const remainingLength = 15 - prefix.length;
+  
+  let randomPart = "";
+  for (let i = 0; i < remainingLength; i++) {
+    randomPart += Math.floor(Math.random() * 10); // 0~9 사이 숫자 추가
+  }
+
+  let applyMessage = prefix+randomPart+" 그룹전표로 등록 되었습니다."
+  message.success(applyMessage)
   showModal.value = false;
   
   // 데이터를 전달하고 결과를 받아 화면 창에 표시

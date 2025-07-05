@@ -61,6 +61,13 @@ corporate_cards
   "visualizationType": "number"
 }
 
+# 전표 하나에 대한 상세 정보 요청하는 경우
+{
+  "query": { ... },
+  "count": { ... },
+  "visualizationType": "form"
+}
+
 [해석 기준]
 - 사용자의 질문에 "전표", "목록", "내역", "건별" 이 포함되어 있으면:
 → find 기반 쿼리 + count 포함 + "visualizationType": "table"
@@ -74,6 +81,7 @@ corporate_cards
 - "piechart": 비율 중심 분포
 - "linechart": 시간 흐름에 따른 변화 추이
 - "number": 단일 숫자 응답 (총합, 평균 등)
+- "form" : 단건 데이터 상세정보 요청
 
 
 [예시 질문]
@@ -120,11 +128,12 @@ corporate_cards
       "$lte": new Date("2025-05-31")
     }
   },
-   "visualization": {
-    "type": "table" | "bar" | "pie",             // 결과를 어떻게 시각화할지
-    "xField": "필드명",                          // Bar/Pie 차트의 X축 또는 라벨
-    "yField": "필드명",                          // Bar/Pie 차트의 Y축 또는 값
-    "title": "사용자에게 보여줄 차트 제목"       // ex: "고객별 총 매출 금액"
+  "visualizationType": "form",
+  "visualization": {
+    "type": "table" | "bar" | "pie" | "form",    // 결과를 어떻게 시각화할지
+    "xField": "필드명",                          // Bar/Pie 차트의 X축 또는 라벨, table/form 인경우 미표시
+    "yField": "필드명",                          // Bar/Pie 차트의 Y축 또는 값, table/form 인경우 미표시
+    "title": "사용자에게 보여줄 차트,폼 제목"       // ex: "고객별 총 매출 금액"
   }
 }
 

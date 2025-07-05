@@ -303,6 +303,11 @@ const mailModalVisible = ref(false);
 const selectedMailIndex = ref(null);
 
 const detailFunction = (event)=>{
+  // 시작 값이 7700 으로 값이 전달되는 경우 "법인카드 전표번호 클릭" 으로 보고 전체 질문을 완성하여 전달
+  if (event.startsWith("7700")) {
+    event+=" 의 전표번호의 세부 내역"
+  }
+
   aiText.value = event
   send_chat()
 }
@@ -337,6 +342,7 @@ const menuOptions = [
       { label: '법인카드 사용현황', key: '6월 법인카드 사용내역 알려줘', icon:"ChatboxEllipses"},
       { label: '법인카드 사용 통계', key: '6월 법인카드 사용에따른 일자별 금액 통계 보여줘', icon:"ChatboxEllipses"},
       { label: '법인카드 전표 처리', key: '7월 법인카드 등록할께', icon:"ChatboxEllipses"},
+      { label: '법인카드 상세확인', key: '77000416868 전표번호 내용 상세히 알려줘', icon:"ChatboxEllipses"},
       {
         label: '판매현황',
         key: '6월 판매현황을 상세히 보여줘', icon:"ChatboxEllipses"

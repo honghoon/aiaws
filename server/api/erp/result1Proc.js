@@ -46,16 +46,12 @@ export const send1Proc = async (writer, history, toMessage) => {
         }));
 
         returnType = "table";
-
-        console.log(formattedResult)
-        resultDataCount = await db.collection('corporate_cards').countDocuments(queryObj.count);
-        console.log(resultDataCount)
-        
         sendResponseData = {
           "type":returnType,
           "data":formattedResult,
           "scenrios":1,
           "columns": corporate_cardsColumns,
+          "visualization":queryObj.visualization,
           "title": "법인카드 전표 데이터"
         }
 
@@ -72,14 +68,33 @@ export const send1Proc = async (writer, history, toMessage) => {
         }));
         
         returnType = "chart";
-        console.log(formattedResult)
-        
         sendResponseData = {
           "type":returnType,
           "data":formattedResult,
           "scenrios":1,
           "visualization":queryObj.visualization,
           "chartType":"bar"
+        }
+    
+    }else if (queryObj.visualizationType === 'form'){
+        await streamFallbackMessageJump(writer, prockey)
+        await streamFallbackMessageJump(writer, '데이터를 조회하고 있습니다.\n')
+
+        resultDataSet = await db.collection('corporate_cards').find(queryObj.query).toArray();
+
+        
+        formattedResult = resultDataSet.map(doc => ({
+        ...doc
+        }));
+        
+
+        returnType = "form";
+        sendResponseData = {
+          "type":returnType,
+          "modelValue":formattedResult[0],
+          "scenrios":1,
+          "schema": corporate_cardsColumns,
+          "title": "법인카드 전표 상세정보"
         }
     
     }
@@ -128,62 +143,95 @@ export const send1Proc = async (writer, history, toMessage) => {
 const corporate_cardsColumns = [
   {
     title: '전표번호',
+    label: '전표번호',
+    type: 'text',
     key: 'slipNumber',
     width: 120,
-    fixed: 'left'
+    fixed: 'left',
+    edit: false
   },
   {
     title: '사용일자',
+    label: '사용일자',
+    type: 'text',
     key: 'usageDate',
-    width: 120
+    width: 120,
+    edit: false
   },
   {
     title: '상호',
+    label: '상호',
+    type: 'text',
     key: 'merchantName',
     width: 150,
+    edit: false
   },
   {
     title: '금액',
+    label: '금액',
+    type: 'text',
     key: 'amount',
     width: 100,
-    type: 'amount'
+    type: 'amount',
+    edit: false
   },
   {
     title: '부가세',
+    label: '부가세',
+    type: 'text',
     key: 'taxAmount',
     width: 100,
-    type: 'amount'
+    type: 'amount',
+    edit: false
   },
   {
     title: '계정과목',
+    label: '계정과목',
+    type: 'text',
     key: 'glAccount',
     width: 100,
+    edit: false
   },
   {
     title: '코스트센터',
+    label: '코스트센터',
+    type: 'text',
     key: 'costCenter',
     type :"edit",
     width: 100,
+    edit: false
   },
   {
     title: 'WBS',
+    label: 'WBS',
+    type: 'text',
     key: 'wbsElement',
     width: 100,
+    edit: false
   },
   {
     title: '사용내역',
+    label: '사용내역',
+    type: 'text',
     key: 'description',
     width: 200,
+    edit: false
   },
   {
     title: '회사코드',
+    label: '회사코드',
+    type: 'text',
     key: 'companyCode',
-    width: 120
+    width: 120,
+    edit: false
   },
   {
     title: '등록자',
+    label: '등록자',
+    type: 'text',
     key: 'createdBy',
     width: 120,
+    edit: false
   }
   
 ]
