@@ -22,7 +22,7 @@
             @fileUploaded="handleFileUploaded"
           />
           <n-button strong secondary round type="primary" @click="helpRegWork" :loading="helpLoading">HELP(ITSM)</n-button>
-          <n-button strong secondary round type="tertiary">등록</n-button>
+          <n-button strong secondary round type="tertiary" @click="registerwork">등록</n-button>
           <n-button strong secondary round type="info" @click="searchWorks"> 조회 </n-button>
         </div>
       </div>
@@ -461,11 +461,7 @@
           type="primary"
           secondary
           v-if="updateMode"
-          @click="
-            () => {
-              showModal = false;
-            }
-          "
+          @click="regWork"          
         >
           저장
         </n-button>
@@ -540,6 +536,8 @@ const updateMode = ref(false);
 const resultBox = ref(null);
 const resultBox2 = ref(null);
 const themeVars = useThemeVars();
+const createItem = ref({})
+
 const sessionUser = ref({
   id: 1,
   name: "나웅진",
@@ -665,8 +663,6 @@ const searchWorks = function () {
 
   // 배열 교체 시 반응성을 유지하기 위해 splice 사용
   works.splice(0, works.length, ...filtered);
-
-  console.log("🔍 필터 결과:", works.value);
 };
 
 const stopProgressAnimation = (contentEle) => {
@@ -729,7 +725,7 @@ async function submitAI() {
         system: kanbanScenarios,        
         history: [],
         user: aiText.value,
-        works: works.value
+        works: works
     };
 
     const prompt = [
@@ -1006,19 +1002,50 @@ const newwork = {
 
 function registerwork() {
   // 간단한 유효성 검사 및 id 생성
-  let createItem = JSON.parse(JSON.stringify(newwork));
-  createItem.id = works.value.length + 1;
-  createItem.date = new Date().toISOString().split("T")[0]; // 현재 날짜
-  createItem.status = "대기 업무"; // 기본 상태 설정
-  createItem.content = ".."; // 기본 상태 설정
-  createItem.procName = sessionUser.value.name; // 현재 사용자 이름으로 처리자 설정
-  works.value.push(createItem);
+  createItem.value = {
+    id: works.length + 1,
+    type: newwork.type , // newwork에서 복사하거나 기본값 설정
+    title: newwork.title,
+    status: 1, // 숫자 상태값
+    statusName: "대기 업무",
+    color: "infoColor", // 기본 색상 지정
+    progress: 0,
+    users: ["나웅진"], // 현재 사용자로 기본 설정
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: "", // 필요시 설정
+    content: ""
+  };
 
   showModal.value = true;
-  selectedItem.value = works.value[works.value.length - 1];
+  selectedItem.value = createItem.value;
   updateMode.value = true; // 새로 등록할 때는 수정 모드로 전환
-  editor.commands.setContent(works.value[works.value.length - 1].content || "");
+  editor.commands.setContent("1.");
 };
+
+function regWork(){
+  showModal.value = false;
+  works.push(createItem.value);
+}
+
+// function registerwork() {
+//   showModal.value = true;
+//   updateMode.value = true; // 새로 등록할 때는 수정 모드로 전환
+//   // 간단한 유효성 검사 및 id 생성
+//   createItem.value = JSON.parse(JSON.stringify(newwork)); // JSON 파싱하여 값 복사
+//   createItem.value.id = works.length + 1; // 새로운 ID 설정
+//   createItem.value.date = new Date().toISOString().split("T")[0]; // 현재 날짜 설정
+//   createItem.value.status = "대기 업무"; // 기본 상태 설정
+//   createItem.value.content = ""; // 내용 초기화 (원하는 기본 내용으로 설정하셔야 합니다)
+//   createItem.value.procName = sessionUser.value.name; // 현재 사용자 이름으로 처리자 설정
+
+//   selectedItem.value = works[works.length - 1]; // 선택된 항목 업데이트
+//   editor.commands.setContent(works[works.length - 1].content || ""); // 에디터 내용 설정
+// };
+
+// function regWork(){
+//   showModal.value = false;
+//   works.push(createItem.value);
+// }
 
 function resolveColor(colorKey) {
   const color = themeVars.value?.[colorKey]
