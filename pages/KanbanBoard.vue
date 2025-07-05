@@ -165,85 +165,17 @@
                           <p class="text-sm text-slate-600 font-normal">
                             {{ item.content }}
                           </p>
-                        </div>                        
-                      </div>                              
-                    </div>
-
-                    <div v-else-if="item.contentType === 'table'">
-                      <n-table ::bordered="false" :single-line="false">
-                        <thead>
-                          <tr>
-                            <th
-                              v-for="(colName, colindex) in item.col"
-                              :key="colindex"
-                            >
-                              {{ colName }}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>1</td>
-                            <td>2</td>
-                            <td>3</td>
-                            <td>...</td>
-                            <td>5</td>
-                          </tr>
-                        </tbody>
-                      </n-table>
-                    </div>
-
-                    <div v-else-if="item.contentType === 'createTemplate'">
-                      <n-table ::bordered="false" :single-line="false">
-                        <thead>
-                          <tr>
-                            <th
-                              v-for="(colName, colindex) in item.col"
-                              :key="colindex"
-                            >
-                              {{ colName }}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>1</td>
-                            <td>2</td>
-                            <td>3</td>
-                            <td>...</td>
-                            <td>5</td>
-                          </tr>
-                        </tbody>
-                      </n-table>
-                    </div>
-
-                    <div v-else-if="item.contentType === 'updateTemplate'">
-                      <n-table ::bordered="false" :single-line="false">
-                        <thead>
-                          <tr>
-                            <th
-                              v-for="(colName, colindex) in item.col"
-                              :key="colindex"
-                            >
-                              {{ colName }}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>1</td>
-                            <td>2</td>
-                            <td>3</td>
-                            <td>...</td>
-                            <td>5</td>
-                          </tr>
-                        </tbody>
-                      </n-table>
+                        </div>                                            
+                      </div>                                            
                     </div>
                   </div>
-
-                  <n-divider v-if="item.type === 'system'" />
                 </div>
+                <n-space vertical v-if="is_end">
+                  <n-skeleton text :repeat="1" width="40%"/> 
+                  <n-skeleton text :repeat="1" width="80%" height="80px" /> 
+                  <n-skeleton text :repeat="1" width="60%"/> 
+                  <n-skeleton height="40px" width="66%" circle />
+                </n-space>
               </div>
             </div>
 
@@ -348,6 +280,12 @@
                     </div>
                   </div>
                 </div>
+                <n-space vertical v-if="is_summary_end">
+                  <n-skeleton text :repeat="1" width="40%"/> 
+                  <n-skeleton text :repeat="1" width="80%" height="80px" /> 
+                  <n-skeleton text :repeat="1" width="60%"/> 
+                  <n-skeleton height="40px" width="66%" circle />
+                </n-space>                
               </div>
             </div>
           </div>
@@ -691,6 +629,8 @@ let progressInterval = null;
 
 // 함수 시작 부분에 변수들 선언
 const isProgressing = ref(false);
+const is_end =  ref(false);
+const is_summary_end =  ref(false);
 const progressText = ref(''); // 계속 갱신될 텍스트 (⠋ 분석 중...)
 
 const startProgressAnimation = (contentEle) => {  
@@ -780,6 +720,7 @@ async function submitAI() {
     submitControll = false;
 
     startProgressAnimation(aiResult); // 프로그레스 시작
+    is_end.value = true;
     const res = await fetch("/api/bedrock-common", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -792,7 +733,7 @@ async function submitAI() {
     chatResult = "";
 
     while (true) {
-      stopProgressAnimation(aiResult);
+      stopProgressAnimation(aiResult);      
       const { done, value } = await reader.read();
       if (done) break;
       console.log(decoder.decode(value));
@@ -819,6 +760,7 @@ async function submitAI() {
     submitControll = true;
     progressText.value = "";
     stopProgressAnimation(aiResult);
+    is_end.value = false;
     loading.value = false;
   }
 }
@@ -989,6 +931,7 @@ async function summaryCallAI(type) {
     submitControll = false;
 
     startProgressAnimation(filteredAiResult);
+    is_summary_end.value = true;
     
     const res = await fetch("/api/bedrock-common", {
       method: "POST",
@@ -1022,6 +965,7 @@ async function summaryCallAI(type) {
   } finally {
     submitControll = true;
     summaryCallCnt = 0;
+    is_summary_end.value = false;
     stopProgressAnimation(filteredAiResult);
     loading.value = false;
   }
