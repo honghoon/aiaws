@@ -134,7 +134,7 @@ export const send8Proc = async (writer, history, toMessage) => {
   let updatedOrder
   
   try{
-    updatedOrder = applyPatchToOrder(formattedResult, resultModiyJSON, productDataSet);
+    updatedOrder = applyPatchToOrder(formattedResult[0], resultModiyJSON, productDataSet);
   }catch(e){
     await streamFallbackMessageJump(writer, "--error--")
     await streamFallbackMessageJump(writer, '데이터 변환에 실패하였습니다.')
@@ -159,8 +159,8 @@ export const send8Proc = async (writer, history, toMessage) => {
 
   // 마지막 결과 Data Set JSON 반환
   let sendResponseData = {
-      "type":"form",
-      "modelValue":resultModiyJSON,
+      "type":"form_edit",
+      "modelValue":updatedOrder,
       "scenrios":3,
       "schema": schema,
       "title": queryObj.title,

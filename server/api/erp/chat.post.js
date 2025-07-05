@@ -13,6 +13,7 @@ import { send3Proc } from '~/server/api/erp/result3Proc';
 import { send6Proc } from '~/server/api/erp/result6Proc';
 import { send7Proc } from '~/server/api/erp/result7Proc';
 import { send8Proc } from '~/server/api/erp/result8Proc';
+import { send9Proc } from '~/server/api/erp/result9Proc';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
@@ -94,6 +95,9 @@ export default defineEventHandler(async (event) => {
     return
   }else if (result === 4) {
     await send8Proc(writer, history, toMessage);
+    return
+  }else if (result === 5) {
+    await send9Proc(writer, history, toMessage);
     return
   }
 

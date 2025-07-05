@@ -134,6 +134,7 @@ export async function streamFallbackMessageJumpBedrock(writer: ServerResponse, m
     console.log(" ## AWS 호출 오류 :", e)
     writer.write("--error--");
     writer.write("## AWS 호출 오류 : "+ e.toString());
+    throw e
     return
   }
   

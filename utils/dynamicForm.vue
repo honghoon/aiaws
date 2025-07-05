@@ -122,7 +122,7 @@
 
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
   NForm, NFormItem, NInput, NInputNumber, NSelect, NButton, useMessage, NDatePicker, NDataTable
 } from 'naive-ui'
@@ -136,7 +136,8 @@ const props = defineProps({
   lineItemSections: {
     type: Array,
     default: () => []
-  }
+  },
+  edit:false
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -287,5 +288,11 @@ const onSubmit = async () => {
     console.warn('❌ 유효성 실패:', err)
   }
 }
+
+onMounted(async () => {
+  if(props.edit && props.edit == true){
+    isViewMode.value = false
+  } 
+});
 
 </script>
