@@ -337,6 +337,34 @@ function extractSummaryFromHTML(html) {
   return summary;
 }
 
+let progressState = 0;
+let progressInterval = null;
+// 함수 시작 부분에 변수들 선언
+const isProgressing = ref(false);
+const progressText = ref(''); // 계속 갱신될 텍스트 (⠋ 분석 중...)
+
+const startProgressAnimation = (contentEle) => {  
+  isProgressing.value = true;
+  progressState = 0;
+
+  progressInterval = setInterval(() => {
+    const spinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    progressText.value = `AI에게 요청 중입니다... ${spinners[progressState % spinners.length]}`;
+    contentEle.commands.setContent(progressText.value);
+    progressState++;
+  }, 100);
+};
+
+const stopProgressAnimation = (contentEle) => {
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressInterval = null;
+    progressState = 0;
+    isProgressing.value = false;
+    progressText.value = '';
+  }
+};
+
 /** 제출 처리 **/
 async function submitAI( val) {
   
@@ -372,9 +400,15 @@ async function submitAI( val) {
       }
       summarizedText = extractSummaryFromHTML(textContent);
 
-      const thisWeekWorks2 = 
-                    works.filter(work => isWithin(work.startDate, beforeWeek, afaterWeek)
-                                     || isWithin(work.endDate, beforeWeek, afaterWeek))
+      const thisWeekWorks2 = works
+                        .filter(work => 
+                                        (
+                                        isWithin(work.startDate, beforeWeek, afaterWeek)       
+                                          || 
+                                        isWithin(work.endDate, beforeWeek, afaterWeek)
+                                        )&&
+                                        work.users?.some(user => user.includes('나웅진'))
+                                  )
                         .map((work, idx) => {   
                           const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
                       return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
@@ -441,7 +475,7 @@ async function submitAI( val) {
     
       let request = '';
       if(val =='default'){
-         request = '주간보고 작성해줘';
+         request = '금주 주간보고 작성해줘';
       }else if(val == 'all'){
          request = '주간보고 취합해줘 작성해줘';
       }
@@ -454,7 +488,7 @@ async function submitAI( val) {
 
       prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(thisWeekWorks) + messages });
 
-  
+      startProgressAnimation(editorThis); // 프로그레스 시작
       let res = await fetch('/api/bedrock-common', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -469,11 +503,12 @@ async function submitAI( val) {
         return;
       }
 
-      editorThis.commands.setContent("");
+     
       try {
         let fullContent = ''; // 누적할 변수
 
         while (true) {
+          
           let { done, value } = await reader.read();
           if (done) break;
           let chunk = decoder.decode(value);
@@ -484,9 +519,13 @@ async function submitAI( val) {
 
           fullContent += chunk;
         }
+        stopProgressAnimation(editorThis);
         editorThis.commands.setContent(fullContent);
     
       } finally {
+
+        progressText.value = "";
+        stopProgressAnimation(editorThis);
         loading.value = false;
       }
 
@@ -506,6 +545,7 @@ async function submitAI( val) {
                           })
                           .join("\n\n");
 
+    request = '차주 주간보고 작성해줘';
     // 차주 주간보고
     messages = aboutScenarios
       .replace('{today}', today)
@@ -516,7 +556,7 @@ async function submitAI( val) {
     prompt = [];
     prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(nextWeekWorks) + messages });
 
-
+    startProgressAnimation(editorNext); // 프로그레스 시작
     res = await fetch('/api/bedrock-common', {
     //res = await fetch('/api/bedrock-stream', {  
       method: 'POST',
@@ -532,11 +572,11 @@ async function submitAI( val) {
       return;
     }
 
-    editorNext.commands.setContent("");
     try {
       let fullContent = ''; // 누적할 변수
 
       while (true) {
+        
         let { done, value } = await reader.read();
         if (done) break;
         let chunk1 = decoder.decode(value);
@@ -546,11 +586,13 @@ async function submitAI( val) {
         //chunk = chunk.replace(pattern, '\n[$1]');
 
         fullContent += chunk1;
-
       }
+      stopProgressAnimation(editorNext);
       editorNext.commands.setContent(fullContent);
   
     } finally {
+      progressText.value = "";
+      stopProgressAnimation(editorThis);
       loading.value = false;
     }
   }
