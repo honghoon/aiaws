@@ -360,6 +360,14 @@ const menuOptions = [
         key: 'SO20250630-0010 판매정보를 상세히 알려줘', icon:"ChatboxEllipses"
       },
       {
+        label: '판매오더 납기 변경',
+        key: 'SO20250630-0010 납기 예정일을 8월 20일로 변경해', icon:"ChatboxEllipses"
+      },
+      {
+        label: '판매오더 할인률 변경 10% 추가 DC',
+        key: 'SO20250630-0010 제품 아이템 가격을 모두 10% 할인해줘', icon:"ChatboxEllipses"
+      },
+      {
         label: '판매오더 생성',
         key: `다음 두 프로젝트에 대해 각각 판매오더를 생성해 주세요.
       1. 클라우드 포탈 고도화 프로젝트  
@@ -801,7 +809,6 @@ const send_chat = async () => {
       const chunk = decoder.decode(value);
       if (chunk == "data: \n\n") {continue;}
       if (chunk == "\n\n") {continue;}
-      console.log("chunk", chunk);
 
       let text = chunk.replace("data: ", "");
 
@@ -851,74 +858,84 @@ const send_chat = async () => {
         resultBox.value.scrollTop = resultBox.value.scrollHeight;
       }
     }
+
+    loading.value = false;
+    aiText.value = "";
+
   } finally {
-    if (is_end == true) {
-      const parts = fullchatResult.split(jsonKey);
-      const afterJson = parts.length > 1 ? parts[1].trim() : "";
+    try {
+      if (is_end == true) {
+        const parts = fullchatResult.split(jsonKey);
+        const afterJson = parts.length > 1 ? parts[1].trim() : "";
 
-      aiResult.value[aiResult.value.length - 1].end = true;
+        aiResult.value[aiResult.value.length - 1].end = true;
 
-      if (afterJson !== "") {
-        let tableRowData = JSON.parse(afterJson);
+        if (afterJson !== "") {
+          let tableRowData = JSON.parse(afterJson);
 
-        if (tableRowData.type == "table" || tableRowData.type == "table_edit") {
-          aiResult.value[aiResult.value.length - 1].contentType =
-            tableRowData.type;
-          aiResult.value[aiResult.value.length - 1].col = tableRowData.columns;
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
-          aiResult.value[aiResult.value.length - 1].tableRowData =
-            tableRowData.data;
-        }
-
-        if (tableRowData.type == "form") {
-          aiResult.value[aiResult.value.length - 1].contentType =
-            tableRowData.type;
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
-          aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
-          aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
-          if (tableRowData.lineItemSections){
-            aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+          if (tableRowData.type == "table" || tableRowData.type == "table_edit") {
+            aiResult.value[aiResult.value.length - 1].contentType =
+              tableRowData.type;
+            aiResult.value[aiResult.value.length - 1].col = tableRowData.columns;
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].tableRowData =
+              tableRowData.data;
           }
-        }
 
-        if (tableRowData.type == "form_edit") {
-          aiResult.value[aiResult.value.length - 1].contentType = "form";
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
-          aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
-          aiResult.value[aiResult.value.length - 1].edit = true;
-          aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
-          if (tableRowData.lineItemSections){
-            aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+          if (tableRowData.type == "form") {
+            aiResult.value[aiResult.value.length - 1].contentType =
+              tableRowData.type;
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
+            aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
+            if (tableRowData.lineItemSections){
+              aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+            }
           }
-        }
 
-        if (tableRowData.type == "form_create") {
-          aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type ;
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
-          aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
-          aiResult.value[aiResult.value.length - 1].edit = true;
-          aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
-          if (tableRowData.lineItemSections){
-            aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+          if (tableRowData.type == "form_edit") {
+            aiResult.value[aiResult.value.length - 1].contentType = "form";
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
+            aiResult.value[aiResult.value.length - 1].edit = true;
+            aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
+            if (tableRowData.lineItemSections){
+              aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+            }
           }
-        }
 
-        if (tableRowData.type == "chart") {
-          aiResult.value[aiResult.value.length - 1].contentType =
-            tableRowData.type;
-          aiResult.value[aiResult.value.length - 1].data = tableRowData;
-        }
+          if (tableRowData.type == "form_create") {
+            aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type ;
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
+            aiResult.value[aiResult.value.length - 1].edit = true;
+            aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
+            if (tableRowData.lineItemSections){
+              aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+            }
+          }
 
-        aiResult.value[aiResult.value.length - 1] = JSON.parse(
-          JSON.stringify(aiResult.value[aiResult.value.length - 1])
-        );
-        await nextTick();
-        if (resultBox.value) {
-          resultBox.value.scrollTop = resultBox.value.scrollHeight;
+          if (tableRowData.type == "chart") {
+            aiResult.value[aiResult.value.length - 1].contentType =
+              tableRowData.type;
+            aiResult.value[aiResult.value.length - 1].data = tableRowData;
+          }
+
+          aiResult.value[aiResult.value.length - 1] = JSON.parse(
+            JSON.stringify(aiResult.value[aiResult.value.length - 1])
+          );
+          await nextTick();
+          if (resultBox.value) {
+            resultBox.value.scrollTop = resultBox.value.scrollHeight;
+          }
         }
       }
+    }catch(eee){
+      console.log(eee)
+    }finally{
+      loading.value = false;
+      aiText.value = "";
     }
-    loading.value = false;
   }
   aiText.value = "";
 };
