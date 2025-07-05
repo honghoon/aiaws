@@ -424,9 +424,15 @@ async function submitAI( val) {
       }
     }else{
       // 주간 필터링  
-      const thisWeekWorks = works.filter(work => isWithin(work.startDate, thisWeekStart, thisWeekEnd) 
-                                          || 
-                                        isWithin(work.endDate, thisWeekStart, thisWeekEnd))
+      const thisWeekWorks = works
+                            .filter(work => 
+                                      (
+                                      isWithin(work.startDate, thisWeekStart, thisWeekEnd)       
+                                        || 
+                                      isWithin(work.endDate, thisWeekStart, thisWeekEnd)
+                                       )&&
+                                       work.users?.some(user => user.includes('나웅진'))
+                            )
                             .map((work, idx) => {
                             const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
                             return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
@@ -449,49 +455,56 @@ async function submitAI( val) {
       prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(thisWeekWorks) + messages });
 
   
-    let res = await fetch('/api/bedrock-common', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(prompt),
-    });
+      let res = await fetch('/api/bedrock-common', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prompt),
+      });
 
-    let reader = res.body?.getReader();
-    let decoder = new TextDecoder();
+      let reader = res.body?.getReader();
+      let decoder = new TextDecoder();
 
-    if (!reader) {
-      loading.value = false;
-      return;
-    }
-
-    try {
-      let fullContent = ''; // 누적할 변수
-
-      while (true) {
-        let { done, value } = await reader.read();
-        if (done) break;
-        let chunk = decoder.decode(value);
-
-        // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
-        //chunk = chunk.replace(/(\d+)\.\s*/g, '\n$1. ');
-        //chunk = chunk.replace(pattern, '\n[$1]');
-
-        fullContent += chunk;
+      if (!reader) {
+        loading.value = false;
+        return;
       }
-      editorThis.commands.setContent(fullContent);
-  
-    } finally {
-      loading.value = false;
-    }
+
+      editorThis.commands.setContent("");
+      try {
+        let fullContent = ''; // 누적할 변수
+
+        while (true) {
+          let { done, value } = await reader.read();
+          if (done) break;
+          let chunk = decoder.decode(value);
+
+          // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
+          //chunk = chunk.replace(/(\d+)\.\s*/g, '\n$1. ');
+          //chunk = chunk.replace(pattern, '\n[$1]');
+
+          fullContent += chunk;
+        }
+        editorThis.commands.setContent(fullContent);
+    
+      } finally {
+        loading.value = false;
+      }
 
 
-    const nextWeekWorks = works.filter(work => isWithin(work.startDate, nextWeekStart, nextWeekEnd)       
+      const nextWeekWorks = works
+                            .filter(work => 
+                                      (
+                                      isWithin(work.startDate, nextWeekStart, nextWeekEnd)       
                                         || 
-                                      isWithin(work.endDate, nextWeekStart, nextWeekEnd))
-                        .map((work, idx) => {
-                          const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                          return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-                        })
-                        .join("\n\n");
+                                      isWithin(work.endDate, nextWeekStart, nextWeekEnd)
+                                       )&&
+                                       work.users?.some(user => user.includes('나웅진'))
+                            )
+                          .map((work, idx) => {
+                            const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+                            return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 키: ${work.id}`;
+                          })
+                          .join("\n\n");
 
     // 차주 주간보고
     messages = aboutScenarios
@@ -519,6 +532,7 @@ async function submitAI( val) {
       return;
     }
 
+    editorNext.commands.setContent("");
     try {
       let fullContent = ''; // 누적할 변수
 
