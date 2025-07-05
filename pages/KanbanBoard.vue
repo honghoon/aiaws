@@ -23,7 +23,7 @@
           />
           <n-button strong secondary round type="primary" @click="helpRegWork" :loading="helpLoading">HELP(ITSM)</n-button>
           <n-button strong secondary round type="tertiary" @click="registerwork">등록</n-button>
-          <n-button strong secondary round type="info" @click="searchWorks"> 조회 </n-button>
+          <n-button strong secondary round type="info"  @click="searchWorks"> 조회 </n-button>
         </div>
       </div>
 
@@ -342,14 +342,10 @@
       class="rounded-md p-3"
     >
       <n-form-item :span="2" label="처리자" path="procName">
-        <n-select
-          v-model:value="selectedItem.procName"
-          :options="users"
-          value-field="name"
-          label-field="name"
-          placeholder="처리자를 선택하세요"
-          clearable
-        />
+        <n-input
+          v-model:value="selectedItem.users"
+          placeholder="처리자(이름 입력)"
+        />       
       </n-form-item>
       <n-form-item :span="2" label="상태" path="status">
         <n-select
@@ -1004,7 +1000,7 @@ function registerwork() {
   // 간단한 유효성 검사 및 id 생성
   createItem.value = {
     id: works.length + 1,
-    type: newwork.type , // newwork에서 복사하거나 기본값 설정
+    type: "개발", // newwork에서 복사하거나 기본값 설정
     title: newwork.title,
     status: 1, // 숫자 상태값
     statusName: "대기 업무",
