@@ -25,7 +25,6 @@
           positive-text="확인"
           negative-text="취소"
           @positive-click="submitCallback"
-          @negative-click="cancelCallback"
         />
       </div>
       <div class="min-h-[calc(100vh-280px)] flex gap-3">
@@ -223,6 +222,7 @@ import { aboutScenarios, aboutUpdateScenarios } from '~/utils/prompts/about_sece
 
 const workStore = useWorkStore()
 const works = workStore.works
+const filterUserName = '나웅진';
 const message = useMessage()
 const submitToLeader = ref(false);
 
@@ -235,8 +235,6 @@ function handleChange(e) {
 function submitCallback () {
      message.success('제출되었습니다.');
 }
-
-
 
 const extensions = [
   StarterKit.configure({
@@ -261,21 +259,16 @@ const editorNext = new Editor({
   content: '<p>차주 계획을 작성하세요...</p>',
 })
 
-
 // 마운트 해제 시 destroy
 onBeforeUnmount(() => {
- 
   editorThis.destroy()
   editorNext.destroy()
 })
 
 const textareaMaxHeight = 100;
 const aiText = ref("")
-//const aiResult = ref([])
 const loading = ref(false);
 const today = new Date().toISOString().split('T')[0]; // "2025-06-26"
-const keywords = ["운영", "기획", "개발", "완료", "테스트"];
-const pattern = new RegExp(`\\[(${keywords.join("|")})\\]`, "g");
 
 // 오늘 날짜 기준
 const todayDate = new Date();
@@ -298,9 +291,6 @@ nextWeekStart.setDate(nextWeekStart.getDate() + 7);
 const thisWeekEnd = new Date(thisWeekStart);
 thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
 
-// const lastWeekEnd = new Date(lastWeekStart);
-//lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
-
 const nextWeekEnd = new Date(nextWeekStart);
 nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
 
@@ -310,6 +300,8 @@ const isWithin = (dateStr, start, end) => {
   return date >= start && date <= end; 
 };
 
+
+// HTML 형식으로 변경
 function extractSummaryFromHTML(html) {
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
@@ -337,9 +329,13 @@ function extractSummaryFromHTML(html) {
   return summary;
 }
 
+
+
+
+// 로딩바 
 let progressState = 0;
 let progressInterval = null;
-// 함수 시작 부분에 변수들 선언
+
 const isProgressing = ref(false);
 const progressText = ref(''); // 계속 갱신될 텍스트 (⠋ 분석 중...)
 
@@ -367,205 +363,92 @@ const stopProgressAnimation = (contentEle) => {
 
 /** 제출 처리 **/
 async function submitAI( val) {
-  
   if(val !='default' && val != 'all'){
     if (!aiText.value.trim() || loading.value) return;
   }
 
-  let prompt = []
-
-  if(aiText.value.indexOf('수정') != -1 || aiText.value.indexOf('변경') != -1){ // 금주가 아니면?
+  if(aiText.value.indexOf('수정') != -1 || aiText.value.indexOf('변경') != -1){ 
       if(!checkedValue.value.trim()){
          alert("수정할 주간보고를 선택해주세요");
          return;
       }
-      let summarizedText = '';
       let textContent = '';
       let beforeWeek = '';
-      let afaterWeek = '';
+      let afterWeek = '';
+      let editor = checkedValue.value  == 'thisweek' ? editorThis : editorNext
       if(checkedValue.value == 'thisweek'){
           if(editorThis.getHTML().indexOf('금주 업무 내용을 작성하세요') != -1){
             alert("금주 작성된 주간보고가 없습니다");
             return 
           }
          textContent = editorThis.getHTML();
-         beforeWeek  =thisWeekStart; afaterWeek = thisWeekEnd;
+         beforeWeek  =thisWeekStart; afterWeek = thisWeekEnd;
       }else{
           if(editorNext.getHTML().indexOf('차주 계획을 작성하세요') != -1){
             alert("차주 작성된 주간보고가 없습니다");
             return 
           }
           textContent = editorNext.getHTML();
-          beforeWeek  = nextWeekStart; afaterWeek = nextWeekEnd;
+          beforeWeek  = nextWeekStart; afterWeek = nextWeekEnd;
       }
-      summarizedText = extractSummaryFromHTML(textContent);
-
-      const thisWeekWorks2 = works
-                        .filter(work => 
-                                        (
-                                        isWithin(work.startDate, beforeWeek, afaterWeek)       
-                                          || 
-                                        isWithin(work.endDate, beforeWeek, afaterWeek)
-                                        )&&
-                                        work.users?.some(user => user.includes('나웅진'))
-                                  )
-                        .map((work, idx) => {   
-                          const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                      return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-      })
-      .join("\n\n");
-
-
-      let messages = aboutUpdateScenarios
-      .replace('{today}', today) 
-      .replace("{editor}", summarizedText)
-        .replace("{tasks}", JSON.stringify(thisWeekWorks2))
-         + `\n\n[사용자 요청]\n${aiText.value}`;
-
-      prompt.push({"role": "user", "content": "\n\n업무목록:" + thisWeekWorks2 + messages });
-      
-      let res = await fetch('/api/bedrock-common', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json'  },
-        body: JSON.stringify(prompt),
-      });
-
-      let reader = res.body?.getReader();
-      let decoder = new TextDecoder();
-
-      if (!reader) {
-        loading.value = false;
-        return;
-      }
-
-      try {
-        let fullContent = ''; // 누적할 변수
-        while (true) {
-          let { done, value } = await reader.read();
-          if (done) break;
-          let chunk = decoder.decode(value);
-          fullContent += chunk;
-        }
-        if(checkedValue.value == 'thisweek'){
-          editorThis.commands.setContent(fullContent);
-        }else{
-          editorNext.commands.setContent(fullContent);
-        }
-
-  
-      } finally {
-        loading.value = false;
-      }
-    }else{
-      // 주간 필터링  
-      const thisWeekWorks = works
-                            .filter(work => 
-                                      (
-                                      isWithin(work.startDate, thisWeekStart, thisWeekEnd)       
-                                        || 
-                                      isWithin(work.endDate, thisWeekStart, thisWeekEnd)
-                                       )&&
-                                       work.users?.some(user => user.includes('나웅진'))
-                            )
-                            .map((work, idx) => {
-                            const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                            return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
-                          })
-                          .join("\n\n");
-    
-      let request = '';
-      if(val =='default'){
-         request = '금주 주간보고 작성해줘';
-      }else if(val == 'all'){
-         request = '주간보고 취합해줘 작성해줘';
-      }
-                          
-      // 금주 주간보고
-      let messages = aboutScenarios
-      .replace('{today}', today) 
-      .replace('{tasks}', JSON.stringify(thisWeekWorks))
-       + `\n\n[사용자 요청]\n${request}`;
-
-      prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(thisWeekWorks) + messages });
-
-      startProgressAnimation(editorThis); // 프로그레스 시작
-      let res = await fetch('/api/bedrock-common', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(prompt),
-      });
-
-      let reader = res.body?.getReader();
-      let decoder = new TextDecoder();
-
-      if (!reader) {
-        loading.value = false;
-        return;
-      }
-
+     await callBedRockByObject(setFillterWorks(beforeWeek, afterWeek), aboutUpdateScenarios, editor, aiText.value, extractSummaryFromHTML(textContent));
      
-      try {
-        let fullContent = ''; // 누적할 변수
+  }else{
+      let request = '금주 주간보고 작성해줘';
+      // 금주 주간보고 업무 요청
+      await  callBedRockByObject(setFillterWorks(thisWeekStart, thisWeekEnd), aboutScenarios, editorThis, request, '');
+      // if(val =='default'){
+      //    request = '금주 주간보고 작성해줘';
+      // }else if(val == 'all'){
+      //    request = '주간보고 취합해줘 작성해줘';
+      // }
 
-        while (true) {
-          
-          let { done, value } = await reader.read();
-          if (done) break;
-          let chunk = decoder.decode(value);
-
-          // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
-          //chunk = chunk.replace(/(\d+)\.\s*/g, '\n$1. ');
-          //chunk = chunk.replace(pattern, '\n[$1]');
-
-          fullContent += chunk;
-        }
-        stopProgressAnimation(editorThis);
-        editorThis.commands.setContent(fullContent);
-    
-      } finally {
-
-        progressText.value = "";
-        stopProgressAnimation(editorThis);
-        loading.value = false;
-      }
+      // 차주 주간보고 업무 요청
+      request = '차주 주간보고 작성해줘';
+      await  callBedRockByObject(setFillterWorks(nextWeekStart, nextWeekEnd), aboutScenarios, editorNext, request, '');
+  }
 
 
-      const nextWeekWorks = works
-                            .filter(work => 
-                                      (
-                                      isWithin(work.startDate, nextWeekStart, nextWeekEnd)       
-                                        || 
-                                      isWithin(work.endDate, nextWeekStart, nextWeekEnd)
-                                       )&&
-                                       work.users?.some(user => user.includes('나웅진'))
-                            )
-                          .map((work, idx) => {
-                            const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-                            return `${idx + 1}. [${work.type}] ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 키: ${work.id}`;
-                          })
-                          .join("\n\n");
-
-    request = '차주 주간보고 작성해줘';
-    // 차주 주간보고
-    messages = aboutScenarios
-      .replace('{today}', today)
-      .replace('{tasks}', JSON.stringify(nextWeekWorks))
-        + `\n\n[사용자 요청]\n${request}`;
+  // 데이터(works) 필터 처리 함수
+  function setFillterWorks(startWeek, endWeek){
+    return works
+            .filter(work => 
+                      (
+                      isWithin(work.startDate, startWeek, endWeek)       
+                        || 
+                      isWithin(work.endDate, startWeek, endWeek)
+                        )&&
+                        work.users?.some(user => user.includes(filterUserName))
+            )
+            .map((work, idx) => {
+            const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+          })
+          .join("\n\n");
+  }
 
 
-    prompt = [];
-    prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(nextWeekWorks) + messages });
+  // Bedrock 호출 공통 함수
+  async function callBedRockByObject(works, scenarios, editor, request, asIsEditor){
+    // 프롬프트 설정
+    const prompt = [];
+    const messages = scenarios
+             .replace('{today}', today) 
+             .replace('{tasks}', JSON.stringify(works))
+             .replace('{editor}', asIsEditor)
+            + `\n\n[사용자 요청]\n${request}`;
+    prompt.push({"role": "user", "content": "\n\n업무목록:" + JSON.stringify(works) + messages });
 
-    startProgressAnimation(editorNext); // 프로그레스 시작
-    res = await fetch('/api/bedrock-common', {
-    //res = await fetch('/api/bedrock-stream', {  
+
+    // BedRock API호출
+    startProgressAnimation(editor); // 프로그레스 시작
+    const res = await fetch('/api/bedrock-common', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(prompt),
     });
-
-    reader = res.body?.getReader();
-    decoder = new TextDecoder();
+    const reader =  res.body?.getReader();
+    const decoder = new TextDecoder();
 
     if (!reader) {
       loading.value = false;
@@ -573,28 +456,20 @@ async function submitAI( val) {
     }
 
     try {
-      let fullContent = ''; // 누적할 변수
-
+      let  fullContent = ''; // 누적할 변수
       while (true) {
-        
-        let { done, value } = await reader.read();
+        const { done, value } = await reader.read();
         if (done) break;
-        let chunk1 = decoder.decode(value);
-
-        // 숫자 항목 앞에 줄바꿈 삽입: " 1." or "\n1." 형태
-        //chunk = chunk.replace(/(\d+\.\s)/g, '\n$1');
-        //chunk = chunk.replace(pattern, '\n[$1]');
-
-        fullContent += chunk1;
+        fullContent += decoder.decode(value);
       }
-      stopProgressAnimation(editorNext);
-      editorNext.commands.setContent(fullContent);
-  
+      stopProgressAnimation(editor);
+      editor.commands.setContent(fullContent);
     } finally {
       progressText.value = "";
-      stopProgressAnimation(editorThis);
+      stopProgressAnimation(editor);
       loading.value = false;
     }
+
   }
 }
 </script>
