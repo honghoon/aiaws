@@ -88,11 +88,11 @@
                     :lineItemSections = "item.lineItemSections" 
                     :edit = "item.edit ? item.edit : false"
                   />
-                </div
+                </div>
+                <div
                 v-if="item.contentType === 'form_create'"
                   class="flex flex-col w-full gap-2"
                   style="max-width: 100%">
-                <div>
                   <dynamicForm
                     v-for="(i_roop, colindex) in item.modelValue"
                     :schema="item.schema"
@@ -861,7 +861,7 @@ const send_chat = async () => {
 
     loading.value = false;
     aiText.value = "";
-
+      
   } finally {
     try {
       if (is_end == true) {

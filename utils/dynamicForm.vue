@@ -68,7 +68,7 @@
       >
         <template v-if="field.edit === false">
           <div class="text-sm text-slate-600 font-normal">
-            {{ formatValue(field, field?.key && localModel?.[field.key] !== undefined ? localModel[field.key] : null) }}
+            {{ formatValue(field, localModel[field.key]) }}
           </div>
         </template>
         <component

@@ -145,7 +145,7 @@ export const send8Proc = async (writer, history, toMessage) => {
 
   console.log("## 변환 완료 ##" , updatedOrder)
 
-  const addPromt = " 아래와 같이 데이터를 적용 하였습니다.(저장되지는 않음) \n (필수) 아래 저장 버튼을 클릭하여야 저장됩니다. 답변으로 꼭 저장하라는 메시지를 강조하여 답변하세요. \n 만약 할인이 10% 이상 되면 웅진 PMS에서 VRB 및 전자결재가 필요합니다. "
+  const addPromt = " 아래와 같이 데이터를 적용 하였습니다.(저장되지는 않음) \n (필수) 아래 저장 버튼을 클릭하여야 저장됩니다. 답변으로 꼭 저장하라는 메시지를 강조하여 답변하세요. \n 만약 할인이 10% 이상 되면 웅진 PMS에서 VRB 및 전자결재가 필요합니다. 정보를 추가 답변하고 이 내용은 🔴 **[주의] ~ 와 같이 강조하세요"
   messages = sales_order_select_end
           .replace('{history}', history)
           .replace('{toMessage}', toMessage)
