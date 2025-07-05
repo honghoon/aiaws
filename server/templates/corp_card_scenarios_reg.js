@@ -26,10 +26,13 @@ corporate_cards
 - 실행 가능한 MongoDB 쿼리 코드만 반환해야 함.
 - 자연어 외 문장은 포함하지 말 것. ("다음은 쿼리입니다" 같은 설명은 금지)
 - 날짜는 new Date("YYYY-MM-DD") 형식으로 명확하게 표시
+- 반드시 "현재 질문" 에 요청한 스키마에 대해서만 검색조건으로 쿼리에 포함 할 것.
+- 예: "현재 질문" : "1월 법인카드 전표 내용 알려줘" -> usageDate 스키마에 대한 조건만 MongoDB 쿼리로 작성.
 - 빈 값 조건은 { 필드명: { $in: [null, ""] } } 형식 사용
 - 결과는 20건 이상 출력되지 않도록 고려된 조건으로 작성
 - 쿼리는 다음 중 하나의 형식으로 반드시 JSON 객체로 응답할 것
 - 날짜 컬럼은 new Date("YYYY-MM-DD") 형식으로 문자열로 반환
+
 
 [날짜 해석 기준]
 - 오늘 날짜는 "{today}" 기준으로 해석해야 함.
@@ -43,7 +46,8 @@ corporate_cards
 {
   "query": { ... },
   "count": { ... },
-  "visualizationType": "table"
+  "visualizationType": "table",
+  "mode": "V" // "V": = View(보기), "M" = Modify(수정)
 }
 
 # 통계/합계 조회 (→ aggregate 사용)
@@ -52,7 +56,8 @@ corporate_cards
     { "$match": { ... } },
     { "$group": { "_id": "$필드명", "합계필드명": { "$sum": "$amount" } } }
   ],
-  "visualizationType": "barchart" // 또는 piechart, linechart 등
+  "visualizationType": "barchart", // 또는 piechart, linechart 등
+  "mode": "V"
 }
 # 합계만 필요한 경우 (→ 단일 값 응답)
 {
@@ -60,7 +65,8 @@ corporate_cards
     { "$match": { ... } },
     { "$group": { "_id": null, "totalAmount": { "$sum": "$amount" } } }
   ],
-  "visualizationType": "number"
+  "visualizationType": "number",
+  "mode": "V"
 }
 
 [해석 기준]
@@ -72,7 +78,7 @@ corporate_cards
 
 
 [예시 질문]
-"2025년 5월에 사용된 전표를 보여줘"
+"2025년 5월에 사용된 전표를 등록할께"
 
 [출력]
 - 출력 결과는 .find(...) 없이 내부 쿼리 객체만 작성 (예: { usageDate: { $gte: new Date(...) } })
@@ -87,21 +93,16 @@ corporate_cards
     "usageDate": {
       "$gte": new Date("2025-05-01"),
       "$lte": new Date("2025-05-31")
-    },
-    "slipNumber": {
-      "$nin": [null, ""]
     }
   },
   "count": {
     "usageDate": {
       "$gte": new Date("2025-05-01"),
       "$lte": new Date("2025-05-31")
-    },
-    "slipNumber": {
-      "$nin": [null, ""]
     }
   },
-  "visualizationType": "table"
+  "visualizationType": "table",
+  "mode": "V"
 }
 
 [이전 대화 이력]

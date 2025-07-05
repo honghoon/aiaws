@@ -334,15 +334,9 @@ const menuOptions = [
     key: 'ERP',
     icon: 'NewspaperOutline',
     children: [
-      {
-        label: '법인카드 사용현황',
-        key: '', icon:"ChatboxEllipses"
-        
-      },
-      {
-        label: '법인카드 전표 처리',
-        key: '', icon:"ChatboxEllipses"
-      },
+      { label: '법인카드 사용현황', key: '6월 법인카드 사용내역 알려줘', icon:"ChatboxEllipses"},
+      { label: '법인카드 사용 통계', key: '6월 법인카드 사용에따른 일자별 금액 통계 보여줘', icon:"ChatboxEllipses"},
+      { label: '법인카드 전표 처리', key: '7월 법인카드 등록할께', icon:"ChatboxEllipses"},
       {
         label: '판매현황',
         key: '6월 판매현황을 상세히 보여줘', icon:"ChatboxEllipses"
