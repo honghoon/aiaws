@@ -10,10 +10,10 @@
           AI 주간보고 취합하기
         </n-button>
 
-        <n-button strong secondary round type="tertiary">
+        <n-button strong secondary round type="tertiary" @click=" () => { submitOption = '저장'; submitToLeader = true }">
           임시저장
         </n-button>
-        <n-button strong secondary round type="info" @click="submitToLeader = true">
+        <n-button strong secondary round type="info" @click=" () => { submitOption = '제출'; submitToLeader = true }">
           주간보고
         </n-button>
           <!-- 주간보고 제출 팝업창 -->
@@ -21,7 +21,9 @@
           v-model:show="submitToLeader"
           preset="dialog"
           title="확인"
-          content="주간보고를 제출하시겠습니까?"
+          :content="submitOption === '저장'
+          ? '임시 저장 하겠습니까?'
+          : '주간보고를 제출하시겠습니까?'"
           positive-text="확인"
           negative-text="취소"
           @positive-click="submitCallback"
@@ -31,55 +33,36 @@
         <!-- 전주 -->
        <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
         <h2 class="text-sm font-semibold mb-2">전주 주간보고</h2>
-        <div class="flex-1 overflow-y-auto pr-2"> 
-          <n-card title="[개발]" size="small" class="w-full font-semibold text-xl mb-3" hoverable round style="font-weight: bold;">
+        <div class="flex-1 overflow-y-auto pr-2">
+          <n-card
+            v-for=" (work, index) in getWorksByStatus()"
+            :key="work.id"
+            :title="`[${work.type}]`"
+            size="small"
+            class="w-full font-semibold text-xl mb-3"
+            hoverable
+            round
+            style="font-weight: bold;"
+          >
             <n-space vertical size="small">
-              <div class="">1. 분석 설계</div>
-              <n-space align ="center" justify="space-between">
-                <n-tag size="small"  type="info" round>기간: 2025-07-01 ~ 2025-07-15</n-tag>
-                <n-tag size="small"  type="error" round >진행률: 0%</n-tag>
-              </n-space>
-              <div class="text-gray-700">
-                - 분석 설계 문서를 작성하였습니다.<br/>
-                - 주요 기능에 대한 요구사항을 정리했습니다.<br/>
-                - 추가 검토가 필요합니다.<br/>
-                - 현황: 대기 업무<br/>
-              </div>
-            </n-space>
-          </n-card>
-          <n-card title="[개발]" size="small" class="w-full font-semibold text-xl mb-3" hoverable round style="font-weight: bold;">
-            <n-space vertical size="small">
-              <div class="">1. 분석 설계</div>
-              <n-space align ="center" justify="space-between">
-                <n-tag size="small"  type="info" round>기간: 2025-07-01 ~ 2025-07-15</n-tag>
-                <n-tag size="small"  type="error" round >진행률: 0%</n-tag>
+            <div>{{ work.title }}</div>
+              <n-space align="center" justify="space-between">
+                <n-tag size="small" type="info" round>
+                  기간: {{ work.startDate }} ~  {{ work.endDate }}
+                </n-tag>
+                <n-tag size="small" type="error" round>
+                  진행률: {{ work.progress }}%
+                </n-tag>
               </n-space>
               <div class="text-gray-500">
-                - 분석 설계 문서를 작성하였습니다.<br/>
-                - 주요 기능에 대한 요구사항을 정리했습니다.<br/>
-                - 추가 검토가 필요합니다.<br/>
-                - 현황: 대기 업무<br/>
+                <div v-for="(line, idx) in contentToLines(work.content)" :key="idx" >
+                   {{idx + 1 }} . {{ line }} <br />
+                </div>
+                  ＊ 현황: {{ work.statusName }} <br />
               </div>
             </n-space>
-          </n-card>
-
-          <n-card title="[개발]" size="small" class="w-full font-semibold text-xl mb-3" hoverable round style="font-weight: bold;">
-            <n-space vertical size="small">
-              <div class="">1. 분석 설계</div>
-              <n-space align ="center" justify="space-between">
-                <n-tag size="small"  type="info" round>기간: 2025-07-01 ~ 2025-07-15</n-tag>
-                <n-tag size="small"  type="error" round >진행률: 0%</n-tag>
-              </n-space>
-              <div class="text-gray-500">
-                - 분석 설계 문서를 작성하였습니다.<br/>
-                - 주요 기능에 대한 요구사항을 정리했습니다.<br/>
-                - 추가 검토가 필요합니다.<br/>
-                - 현황: 대기 업무<br/>
-              </div>
-            </n-space>
-          </n-card>
-        </div>
-      
+        </n-card>
+      </div>
       </div>
         <!-- 금주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
@@ -194,6 +177,9 @@
 
 <script setup>
 
+
+
+
 defineProps({
   category: String,
   items: Array
@@ -220,19 +206,26 @@ import { useWorkStore } from '~/stores/work';
 // 프롬프트 자료
 import { aboutScenarios, aboutUpdateScenarios } from '~/utils/prompts/about_secenarios.js';
 
+
+
+
+
 const workStore = useWorkStore()
-const works = workStore.works
+const works = computed(() => workStore.works)
+
 const message = useMessage()
 const submitToLeader = ref(false);
+const submitOption = ref(null); 
+
+
 
 // 수정할 주간보고 값
 const checkedValue = ref('')  // 기본값 설정
 function handleChange(e) {
   checkedValue.value = e.target.value
 }
-
 function submitCallback () {
-     message.success('제출되었습니다.');
+     message.success(submitOption.value === '저장' ? '임시저장되었습니다.' : '제출되었습니다.');
 }
 
 const extensions = [
@@ -280,17 +273,21 @@ const day = thisWeekStart.getDay(); // 0:일 ~ 6:토
 const diffToMonday = (day + 6) % 7; // 월요일까지의 차이 계산
 thisWeekStart.setDate(thisWeekStart.getDate() - diffToMonday);
 
+// 각 주간 종료일 (일요일)
+const thisWeekEnd = new Date(thisWeekStart);
+thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+
 // 지난 주 월요일
 const lastWeekStart = new Date(thisWeekStart);
 lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
+// 지난 주 일요일
+const lastWeekEnd = new Date(lastWeekStart);
+lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+
 // 다음 주 월요일
 const nextWeekStart = new Date(thisWeekStart);
 nextWeekStart.setDate(nextWeekStart.getDate() + 7);
-
-// 각 주간 종료일 (일요일)
-const thisWeekEnd = new Date(thisWeekStart);
-thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
 
 const nextWeekEnd = new Date(nextWeekStart);
 nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
@@ -300,6 +297,27 @@ const isWithin = (dateStr, start, end) => {
   const date = new Date(dateStr);
   return date >= start && date <= end; 
 };
+
+
+function getWorksByStatus() {
+  const data =  works.value.filter(work => {
+                 const inRange = isWithin(work.startDate, lastWeekStart, lastWeekEnd) || isWithin(work.endDate, lastWeekStart, lastWeekEnd);
+                 const includesUser = work.users?.some(user => user.includes('나웅진'));
+    return inRange && includesUser;
+  });
+  return data;
+}
+
+function contentToLines(html) {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+
+  // <p> 태그를 찾아서 텍스트만 추출
+  const paragraphs = tempDiv.querySelectorAll('p');
+  return Array.from(paragraphs)
+    .map(p => p.textContent.trim())
+    .filter(line => line); // 빈 줄 제거
+}
 
 
 // HTML 형식으로 변경

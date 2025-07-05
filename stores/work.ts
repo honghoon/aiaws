@@ -27,7 +27,7 @@ export const useWorkStore = defineStore('work', () => {
       progress: 20,
       users: ["나웅진"],
       startDate: "2025-06-02",
-      endDate: "2025-07-10",
+      endDate: "2025-06-25",
       content: `
         <p>신규 서비스 출시에 앞서 시장 조사 데이터를 기반으로 기능 정의 및 우선순위 도출 회의를 진행하였습니다. 서비스 컨셉 및 사용자 흐름에 대한 논의가 활발히 이루어졌으며, 초기 버전 로드맵이 기획팀 내부에 공유된 상태입니다.</p>
         <p>이번 회의에는 기획, 개발, 마케팅팀이 모두 참여하였으며, 다각도의 피드백을 바탕으로 기능 단위별 개발 범위를 재정의하는 작업도 병행되었습니다.</p>
@@ -126,7 +126,7 @@ export const useWorkStore = defineStore('work', () => {
       color: "successColor",
       progress: 100,
       users: ["나웅진"],
-      startDate: "2025-04-01",
+      startDate: "2025-06-28",
       endDate: "2025-05-10",
       content: `
         <p>정기 로그 점검을 통해 시스템 전반의 이상 징후를 탐지하는 작업이 완료되었습니다. 비정상적인 접근이나 이벤트는 발견되지 않았으며, 로그 저장 주기 및 정책도 문제없이 유지되고 있습니다.</p>
