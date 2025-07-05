@@ -1,112 +1,51 @@
 import { sendClaudeResponseInvoke } from  '~/server/utils/bedrock_invoke';
 import { sales_order_detail} from '~/server/templates/sales_order_detail.js';
-import { sales_order_select_end} from '~/server/templates/sales_order_select_end.js';
+import { sales_order_modify} from '~/server/templates/sales_order_modify';
+import { sales_order_create} from '~/server/templates/sales_order_create';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
 const jsonKey = "\n--json--\n";
 
-export const send7Proc = async (writer, history, toMessage) => {
+export const send9Proc = async (writer, history, toMessage) => {
+
+  const db = await getDatabase(); // MongoDB 커넥션 획득
+
+  // 제품정보 조회
+  const productDataSet = await db
+    .collection("products").find({}).toArray()
+
+  // 고객 조회
+  const customerDataSet = await db
+    .collection("customers").find({}).toArray()
 
   const today = new Date().toISOString().split('T')[0]; // "2025-06-26"
-  let messages = sales_order_detail
+  let messages = sales_order_create
       .replace('{history}', history)
       .replace('{toMessage}', toMessage)
+      .replace('{products}', JSON.stringify(productDataSet, null, 2))
+      .replace('{customers}', JSON.stringify(customerDataSet, null, 2))
       .replace('{today}', today);
 
   let sendPrompt = [{"role": "user", "content" : messages}]   
 
   await streamFallbackMessageJump(writer, prockey)
-  await streamFallbackMessageJump(writer, '쿼리를 생성하고 있습니다.\n')
+  await streamFallbackMessageJump(writer, '데이터를 분석하고 있습니다. 잠시만 기달려주세요.')
 
   let resultInvoke= await sendClaudeResponseInvoke(sendPrompt)
   const queryText = resultInvoke.completion;
   console.log("[LLM 쿼리 결과]", queryText);
 
+  // 판매 오더 inset JSON
   const queryObj = parseMongoQueryFromText(queryText);
-  
-  const orderNumber = queryObj.orderNumber;
-  const query = {
-    queryType: "aggregate",
-    collection: "sales_orders",
-    pipeline: [
-      {
-        $match: { orderNumber }
-      },
-      {
-        $lookup: {
-          from: "customers",
-          localField: "customerCode",
-          foreignField: "customerCode",
-          as: "customer"
-        }
-      },
-      {
-        $unwind: {
-          path: "$customer",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $lookup: {
-          from: "products",
-          let: { productCodes: "$lineItems.productCode" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $in: ["$productCode", "$$productCodes"]
-                }
-              }
-            }
-          ],
-          as: "products"
-        }
-      },
-      { $limit: 1 }
-    ]
-  };
-
-  const db = await getDatabase(); // MongoDB 커넥션 획득
-  const resultDataSet = await db
-    .collection(query.collection)
-    .aggregate(query.pipeline)
-    .toArray();
-
-  console.log("resultDataSet", resultDataSet)
-
-  let formattedResult = resultDataSet;
-
-  console.log("분석 쿼리 실행 결과 Mongo DB Result Set: ", formattedResult)
-  console.log("기준 쿼리 정보", queryObj)
-
-  if (!formattedResult || formattedResult.length === 0) {
-    await streamFallbackMessageJump(writer, messgageKey);
-    await streamFallbackMessageJump(writer, '데이터가 존재하지 않습니다.\n');
-    writer.write(`event: end\ndata: [DONE]\n\n`);
-    writer.end();
-    return;
-  }
-
-  messages = sales_order_select_end
-          .replace('{history}', history)
-          .replace('{toMessage}', toMessage)
-          .replace('{today}', today)
-          .replace('{results}', JSON.stringify(formattedResult, null, 2));
-  
-
-  console.log(messages)
-
-  sendPrompt = [{"role": "user", "content" : messages}]
 
   await streamFallbackMessageJump(writer, messgageKey)
-  // bedrock 스트림으로 결과 답변 요청 stream 실행
-  await streamFallbackMessageJumpBedrock(writer, sendPrompt)
+  await streamFallbackMessageJump(writer, queryObj.message)
 
   // 마지막 결과 Data Set JSON 반환
   let sendResponseData = {
-      "type":"form",
-      "modelValue":formattedResult[0],
+      "type":"form_create",
+      "modelValue":queryObj.data,
       "scenrios":3,
       "schema": schema,
       "title": queryObj.title,
@@ -183,7 +122,6 @@ const schema = [
     label: '주문번호',
     key: 'orderNumber',
     type: 'text',
-    required: true,
     placeholder: '주문번호를 입력하세요',
     edit:false
   },
@@ -213,7 +151,8 @@ const schema = [
   {
     label: '납기 예정일',
     key: 'deliveryDate',
-    type: 'date'
+    type: 'date',
+    required: true,
   },
   {
     label: '결재 조건',
@@ -289,3 +228,77 @@ const product_colums = [
     ]
   }
 ] 
+
+function applyPatchToOrder(originalData, patchList, products) {
+  const cloned = structuredClone(originalData); // 원본 보호
+
+  for (const patch of patchList) {
+    const { type, key, value } = patch;
+
+    if (!key) continue;
+
+    const path = key.replace(/\[(\d+)\]/g, '.$1').split('.');
+    let target = cloned;
+    for (let i = 0; i < path.length - 1; i++) {
+      const segment = path[i];
+      if (!(segment in target)) {
+        target[segment] = /^\d+$/.test(path[i + 1]) ? [] : {};
+      }
+      target = target[segment];
+    }
+
+    const lastKey = path[path.length - 1];
+
+    // 🔁 수정
+    if (type === 'M') {
+      target[lastKey] = value;
+    }
+
+    // ➕ 추가 (lineItems 에 제품 추가)
+    else if (type === 'A' && key === 'lineItems') {
+      const { productCode, quantity } = value;
+
+      const product = products.find(p => p.productCode === productCode);
+      if (!product) {
+        console.warn(`❗제품코드 ${productCode} 를 products 목록에서 찾을 수 없습니다.`);
+        continue;
+      }
+
+      const taxAmount = Math.round(product.standardPrice * quantity * product.taxRate);
+      const amount = product.standardPrice * quantity;
+
+      const newItem = {
+        itemNumber: target.length > 0 ? (Math.max(...target.map(i => i.itemNumber)) + 10) : 10,
+        productCode: product.productCode,
+        productName: product.productName,
+        quantity,
+        uom: product.uom,
+        unitPrice: product.standardPrice,
+        amount,
+        taxRate: product.taxRate,
+        taxAmount
+      };
+
+      target.push(newItem);
+    }
+
+    // ➖ 삭제 (lineItems[n] 삭제)
+    else if (type === 'D' && path[0] === 'lineItems') {
+      const index = parseInt(path[1]);
+      if (!isNaN(index) && Array.isArray(cloned.lineItems)) {
+        cloned.lineItems.splice(index, 1);
+      }
+    }
+  }
+
+  // 💰 총액 재계산
+  if (Array.isArray(cloned.lineItems)) {
+    const totalAmount = cloned.lineItems.reduce((sum, item) => sum + item.amount, 0);
+    const totalTax = cloned.lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
+    cloned.totalAmount = totalAmount;
+    cloned.totalTax = totalTax;
+    cloned.grandTotal = totalAmount + totalTax;
+  }
+
+  return cloned;
+}

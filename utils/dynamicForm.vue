@@ -19,7 +19,7 @@
           {{ field.label }}
         </div>
         <div class="text-base text-slate-700">
-          {{ formatValue(field, localModel[field.key]) }}
+          {{ formatValue(field, field?.key && localModel?.[field.key] !== undefined ? localModel[field.key] : null) }}
         </div>
       </div>
 
@@ -35,7 +35,7 @@
           </h4>
           <n-data-table
             :columns="section.columns"
-            :data="localModel[section.key] || []"
+            :data="localModel?.[section.key] ?? []"
             :bordered="true"
             :scroll-x="1000"
           />
@@ -103,7 +103,7 @@
 
           <n-data-table
             :columns="section.columns"
-            :data="localModel[section.key] || []"
+            :data="localModel?.[section.key] ?? []"
             :bordered="true"
             :scroll-x="1000"
           />
@@ -113,7 +113,7 @@
 
       <div class="md:col-span-3 pt-4 flex justify-end border-t mt-4">
         <n-button type="primary" size="large" @click="onSubmit">
-          제출
+          저장
         </n-button>
       </div>
     </n-form>
@@ -122,7 +122,7 @@
 
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
   NForm, NFormItem, NInput, NInputNumber, NSelect, NButton, useMessage, NDatePicker, NDataTable
 } from 'naive-ui'
@@ -136,7 +136,8 @@ const props = defineProps({
   lineItemSections: {
     type: Array,
     default: () => []
-  }
+  },
+  edit:false
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -196,13 +197,21 @@ const formatValue = (field, value) => {
     const found = field.options.find(opt => opt.value === value)
     return found ? found.label : value
   }
+
   if (field.type === 'date') {
     const date = new Date(value)
     return isNaN(date.getTime()) ? '-' : date.toLocaleDateString()
   }
+
   if (field.dataType === 'amount' && typeof value === 'number') {
-    return value.toLocaleString(); // 세 자리 콤마 포맷
+    return value.toLocaleString()
   }
+
+  // ✅ 여기에서 객체 내부 접근을 안전하게
+  if (typeof value === 'object' && value !== null && field.subField) {
+    return value[field.subField] ?? '-'
+  }
+
   return value ?? '-'
 }
 
@@ -287,5 +296,11 @@ const onSubmit = async () => {
     console.warn('❌ 유효성 실패:', err)
   }
 }
+
+onMounted(async () => {
+  if(props.edit && props.edit == true){
+    isViewMode.value = false
+  } 
+});
 
 </script>

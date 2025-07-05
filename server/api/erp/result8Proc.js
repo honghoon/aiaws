@@ -134,7 +134,7 @@ export const send8Proc = async (writer, history, toMessage) => {
   let updatedOrder
   
   try{
-    updatedOrder = applyPatchToOrder(formattedResult, resultModiyJSON, productDataSet);
+    updatedOrder = applyPatchToOrder(formattedResult[0], resultModiyJSON, productDataSet);
   }catch(e){
     await streamFallbackMessageJump(writer, "--error--")
     await streamFallbackMessageJump(writer, '데이터 변환에 실패하였습니다.')
@@ -145,11 +145,12 @@ export const send8Proc = async (writer, history, toMessage) => {
 
   console.log("## 변환 완료 ##" , updatedOrder)
 
+  const addPromt = " 아래와 같이 데이터를 적용 하였습니다.(저장되지는 않음) \n (필수) 아래 저장 버튼을 클릭하여야 저장됩니다. 답변으로 꼭 저장하라는 메시지를 강조하여 답변하세요. \n 만약 할인이 10% 이상 되면 웅진 PMS에서 VRB 및 전자결재가 필요합니다. 정보를 추가 답변하고 이 내용은 🔴 **[주의] ~ 와 같이 강조하세요"
   messages = sales_order_select_end
           .replace('{history}', history)
           .replace('{toMessage}', toMessage)
           .replace('{today}', today)
-          .replace('{results}', "아래와 같이 데이터 변경을 하였습니다. 아래 제출 버튼을 클릭하여 반영 부탁드립니다.\n" + JSON.stringify(resultModiyJSON, null, 2));
+          .replace('{results}', addPromt + JSON.stringify(resultModiyJSON, null, 2));
 
   sendPrompt = [{"role": "user", "content" : messages}]
 
@@ -159,8 +160,8 @@ export const send8Proc = async (writer, history, toMessage) => {
 
   // 마지막 결과 Data Set JSON 반환
   let sendResponseData = {
-      "type":"form",
-      "modelValue":resultModiyJSON,
+      "type":"form_edit",
+      "modelValue":updatedOrder,
       "scenrios":3,
       "schema": schema,
       "title": queryObj.title,
@@ -293,13 +294,19 @@ const schema = [
 
 const product_colums = [
   {
-    "key": "products",
+    "key": "lineItems",
     "title":"* 제품정보",
     "columns":[
       {
+        title: 'id',
+        key: 'itemNumber',
+        width: 40,
+        fixed: 'left'
+      },
+      {
         title: '품목 코드',
         key: 'productCode',
-        width: 80,
+        width: 60,
         fixed: 'left'
       },
       {
@@ -308,21 +315,32 @@ const product_colums = [
         width: 100
       },
       {
-        title: '품목 종류',
-        key: 'type',
-        width: 80,
+        title: '수량',
+        key: 'quantity',
+        width: 40,
+        fixed: 'left'
       },
       {
-        title: '기준 단가',
-        key: 'standardPrice',
-        type: "amount",
-        width: 70,
+        title: '단가',
+        key: 'unitPrice',
+        width: 100,
+        type:"amount",
+        fixed: 'left'
       },
       {
-        title: '단위',
-        key: 'uom',
-        width: 70,
-      }
+        title: '세액',
+        key: 'taxAmount',
+        width: 100,
+        type:"amount",
+        fixed: 'left'
+      },
+      {
+        title: '세율',
+        key: 'taxRate',
+        width: 40,
+        type:"amount",
+        fixed: 'left'
+      },
     ]
   }
 ] 

@@ -86,6 +86,20 @@
                     :modelValue="item.modelValue"
                     :title="item.title"
                     :lineItemSections = "item.lineItemSections" 
+                    :edit = "item.edit ? item.edit : false"
+                  />
+                </div>
+                <div
+                v-if="item.contentType === 'form_create'"
+                  class="flex flex-col w-full gap-2"
+                  style="max-width: 100%">
+                  <dynamicForm
+                    v-for="(i_roop, colindex) in item.modelValue"
+                    :schema="item.schema"
+                    :modelValue="i_roop.json"
+                    :title="i_roop.title"
+                    :lineItemSections = "item.lineItemSections" 
+                    :edit = "item.edit ? item.edit : false"
                   />
                 </div>
 
@@ -163,16 +177,40 @@
         @input="autoResize"
       ></textarea>
       
-      <n-button @click="active = true" strong secondary circle type="info" class="!absolute !bottom-13 left-8">
+      <n-button @click="active = true" strong secondary circle type="info" class="!absolute !bottom-18 left-8">
         <template #icon>
           <n-icon><Apps /></n-icon>
         </template>
       </n-button>
+      
+      <n-popover trigger="click" :show="attachPop">
+        <template #trigger>
+          <n-button strong secondary @click="attachPop=true" circle type="primary" class="!absolute !bottom-8 left-8">
+            <template #icon>
+              <n-icon><DocumentAttachOutline /></n-icon>
+            </template>
+          </n-button>
+        </template>
+        <div class="flex flex-col items-start">
+          <n-button quaternary size="xs" @click="()=>{mailModalVisible = true; attachPop=false;}">
+            + 전자메일 불러오기
+          </n-button>
+          <n-button quaternary size="xs">
+            + 첨부파일 추가
+          </n-button>
+        </div>
+      </n-popover>
 
       <!-- 보내기 버튼 (아이콘) -->
-      <n-button @click="send_chat" strong secondary type="success" circle class="!absolute !bottom-13 right-8">
+      <n-button v-if="loading == false" @click="send_chat" strong secondary type="success" circle class="!absolute !bottom-13 right-8">
         <template #icon>
           <n-icon :size="26"><ArrowUpCircle /></n-icon> <!-- 기본보다 큼 -->
+        </template>
+      </n-button>
+
+      <n-button v-if="loading == true" @click="loading = false" strong secondary type="error" circle class="!absolute !bottom-13 right-8">
+        <template #icon>
+          <n-icon :size="26"><Ban /></n-icon> <!-- 기본보다 큼 -->
         </template>
       </n-button>
 
@@ -198,6 +236,45 @@
     </n-drawer-content>
   </n-drawer>
 
+  <!-- 이메일 목록/미리보기 모달 -->
+  <n-modal v-model:show="mailModalVisible" title="📥 이메일 미리보기" preset="card" style="width: 860px; padding: 0">
+    <div class="flex gap-2 p-4 bg-gray-50 rounded-md">
+      <!-- 메일 목록 -->
+      <div class="w-1/3 border-r border-gray-200 pr-3 max-h-[500px] overflow-y-auto">
+        <n-list bordered>
+          <n-list-item
+            v-for="(mail, idx) in mailList"
+            :key="idx"
+            @click="selectedMailIndex = idx"
+            class="cursor-pointer px-2 py-2 mb-2 transition-colors duration-150 rounded hover:bg-gray-100"
+            :class="{ 'bg-white shadow-sm ring-1 ring-gray-100': selectedMailIndex === idx }"
+          >
+            <div class="text-sm text-gray-700 line-clamp-2 break-words">
+              {{ mail.title || mail.titile }}
+            </div> 
+          </n-list-item>
+        </n-list>
+      </div>
+
+      <!-- 메일 내용 -->
+      <div class="w-2/3 bg-white rounded p-3 max-h-[500px] overflow-y-auto text-[13px] text-gray-700">
+        <div
+          v-if="selectedMailIndex !== null"
+          v-html="mailList[selectedMailIndex].data"
+          class="leading-relaxed"
+        ></div>
+        <div v-else class="text-gray-400 italic">메일을 선택해주세요.</div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="w-full flex justify-end px-4 pb-3">
+        <n-button type="primary" size="small" @click="sendSelectedMailToChat" :disabled="selectedMailIndex === null">
+          📤 전송
+        </n-button>
+      </div>
+    </template>
+  </n-modal>
 </template>
 
 <script setup>
@@ -205,7 +282,7 @@ import { h, ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 
 // Ionicons
 import { NIcon } from 'naive-ui';
-import { Apps,  ArrowUpCircle } from "@vicons/ionicons5";
+import { Apps,  ArrowUpCircle, Ban, DocumentAttachOutline } from "@vicons/ionicons5";
 import CharTest from "./chartTest.vue";
 import { NTag } from "naive-ui";
 import { createColumns } from "~/utils/tableUtils";
@@ -221,6 +298,9 @@ import logo from '@/assets/images/logov2.png'
 
 const active  = ref(false)
 const textareaRef = ref(null);
+const attachPop = ref(false)
+const mailModalVisible = ref(false);
+const selectedMailIndex = ref(null);
 
 const detailFunction = (event)=>{
   aiText.value = event
@@ -279,6 +359,32 @@ const menuOptions = [
         label: '판매오더 상세 확인',
         key: 'SO20250630-0010 판매정보를 상세히 알려줘', icon:"ChatboxEllipses"
       },
+      {
+        label: '판매오더 납기 변경',
+        key: 'SO20250630-0010 납기 예정일을 8월 20일로 변경해', icon:"ChatboxEllipses"
+      },
+      {
+        label: '판매오더 할인률 변경 10% 추가 DC',
+        key: 'SO20250630-0010 제품 아이템 가격을 모두 10% 할인해줘', icon:"ChatboxEllipses"
+      },
+      {
+        label: '판매오더 생성',
+        key: `다음 두 프로젝트에 대해 각각 판매오더를 생성해 주세요.
+      1. 클라우드 포탈 고도화 프로젝트  
+      - Vue.js 개발자 1명 (단가: 10,800,000원)  
+      - 퍼블리셔 1명 (단가: 8,000,000원)  
+      - 납기: 2025-08-25  
+      - 결제조건: 30D
+
+      2. 보안 솔루션 이관 프로젝트  
+      - PM 1명 (단가: 13,500,000원)  
+      - 보안 컨설턴트 1명 (단가: 12,500,000원)  
+      - 납기: 2025-09-01  
+      - 결제조건: 45D
+
+      각각 별도의 주문으로 처리 부탁드립니다.`,
+        icon: "ChatboxEllipses"
+      }
     ]
   },
   {
@@ -703,7 +809,6 @@ const send_chat = async () => {
       const chunk = decoder.decode(value);
       if (chunk == "data: \n\n") {continue;}
       if (chunk == "\n\n") {continue;}
-      console.log("chunk", chunk);
 
       let text = chunk.replace("data: ", "");
 
@@ -720,8 +825,6 @@ const send_chat = async () => {
         chatResult = ""; // 챗 초기화
         continue
       }
-
-      
 
       if (text.includes(messgageKey)) {
         chatType = "text";
@@ -756,53 +859,83 @@ const send_chat = async () => {
       }
     }
 
-    console.log("종료 ===")
+    loading.value = false;
+    aiText.value = "";
+      
   } finally {
-    if (is_end == true) {
-      const parts = fullchatResult.split(jsonKey);
-      const afterJson = parts.length > 1 ? parts[1].trim() : "";
+    try {
+      if (is_end == true) {
+        const parts = fullchatResult.split(jsonKey);
+        const afterJson = parts.length > 1 ? parts[1].trim() : "";
 
-      aiResult.value[aiResult.value.length - 1].end = true;
+        aiResult.value[aiResult.value.length - 1].end = true;
 
-      if (afterJson !== "") {
-        let tableRowData = JSON.parse(afterJson);
+        if (afterJson !== "") {
+          let tableRowData = JSON.parse(afterJson);
 
-        if (tableRowData.type == "table" || tableRowData.type == "table_edit") {
-          aiResult.value[aiResult.value.length - 1].contentType =
-            tableRowData.type;
-          aiResult.value[aiResult.value.length - 1].col = tableRowData.columns;
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
-          aiResult.value[aiResult.value.length - 1].tableRowData =
-            tableRowData.data;
-        }
+          if (tableRowData.type == "table" || tableRowData.type == "table_edit") {
+            aiResult.value[aiResult.value.length - 1].contentType =
+              tableRowData.type;
+            aiResult.value[aiResult.value.length - 1].col = tableRowData.columns;
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].tableRowData =
+              tableRowData.data;
+          }
 
-        if (tableRowData.type == "form") {
-          aiResult.value[aiResult.value.length - 1].contentType =
-            tableRowData.type;
-          aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
-          aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
-          aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
-          if (tableRowData.lineItemSections){
-            aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+          if (tableRowData.type == "form") {
+            aiResult.value[aiResult.value.length - 1].contentType =
+              tableRowData.type;
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
+            aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
+            if (tableRowData.lineItemSections){
+              aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+            }
+          }
+
+          if (tableRowData.type == "form_edit") {
+            aiResult.value[aiResult.value.length - 1].contentType = "form";
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
+            aiResult.value[aiResult.value.length - 1].edit = true;
+            aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
+            if (tableRowData.lineItemSections){
+              aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+            }
+          }
+
+          if (tableRowData.type == "form_create") {
+            aiResult.value[aiResult.value.length - 1].contentType = tableRowData.type ;
+            aiResult.value[aiResult.value.length - 1].title = tableRowData.title;
+            aiResult.value[aiResult.value.length - 1].schema = tableRowData.schema;
+            aiResult.value[aiResult.value.length - 1].edit = true;
+            aiResult.value[aiResult.value.length - 1].modelValue =  tableRowData.modelValue;
+            if (tableRowData.lineItemSections){
+              aiResult.value[aiResult.value.length - 1].lineItemSections = tableRowData.lineItemSections
+            }
+          }
+
+          if (tableRowData.type == "chart") {
+            aiResult.value[aiResult.value.length - 1].contentType =
+              tableRowData.type;
+            aiResult.value[aiResult.value.length - 1].data = tableRowData;
+          }
+
+          aiResult.value[aiResult.value.length - 1] = JSON.parse(
+            JSON.stringify(aiResult.value[aiResult.value.length - 1])
+          );
+          await nextTick();
+          if (resultBox.value) {
+            resultBox.value.scrollTop = resultBox.value.scrollHeight;
           }
         }
-
-        if (tableRowData.type == "chart") {
-          aiResult.value[aiResult.value.length - 1].contentType =
-            tableRowData.type;
-          aiResult.value[aiResult.value.length - 1].data = tableRowData;
-        }
-
-        aiResult.value[aiResult.value.length - 1] = JSON.parse(
-          JSON.stringify(aiResult.value[aiResult.value.length - 1])
-        );
-        await nextTick();
-        if (resultBox.value) {
-          resultBox.value.scrollTop = resultBox.value.scrollHeight;
-        }
       }
+    }catch(eee){
+      console.log(eee)
+    }finally{
+      loading.value = false;
+      aiText.value = "";
     }
-    loading.value = false;
   }
   aiText.value = "";
 };
@@ -865,7 +998,206 @@ watch(aiText, () => {
   });
 });
 
+const mailList = [
+  {
+    title:'[판매오더 요청] Java 개발자 및 디자이너 파견 요청의 건',
+    data:`<div class="p-4 border rounded-md shadow-sm bg-white space-y-2">
+  <h2 class="text-lg font-semibold text-gray-800">
+    📧 [판매오더 요청] Java 개발자 및 디자이너 파견 요청의 건
+  </h2>
+  <p class="text-sm text-gray-600">보낸 사람: 김지훈 과장 (LG화학 IT전략팀)</p>
 
+  <div class="text-sm space-y-1">
+    <p>안녕하세요, LG화학 IT전략팀 김지훈 과장입니다.</p>
+    <p>당사 프로젝트에 필요한 외부 인력 파견을 아래와 같이 요청드립니다.</p>
+
+    <ul class="list-disc list-inside ml-4">
+      <li><strong>고객사:</strong> LG화학</li>
+      <li><strong>요청 품목:</strong>
+        <ul class="list-disc list-inside ml-6">
+          <li>Java 기반 개발자 1명</li>
+          <li>UI/UX 디자이너 1명 (단가: 9,500,000원)</li>
+        </ul>
+      </li>
+      <li><strong>납기 예정일:</strong> 2025년 8월 10일</li>
+      <li><strong>결제 조건:</strong> 납품 후 30일</li>
+    </ul>
+
+    <p>빠른 견적 및 오더 등록 부탁드립니다.<br/>감사합니다.</p>
+
+    <p class="text-sm text-gray-500">
+      - 김지훈 과장<br/>
+      - LG화학 IT전략팀<br/>
+      - jihun.kim@lgchem.com / 02-3773-1114
+    </p>
+  </div>
+</div>`
+  },
+  {
+    titile : "📧 [판매오더 요청] SAP FI 컨설턴트 파견 건",
+    data : `<div class="p-4 border rounded-md shadow-sm bg-white space-y-2 mt-6">
+  <h2 class="text-lg font-semibold text-gray-800">
+    📧 [판매오더 요청] SAP FI 컨설턴트 파견 건
+  </h2>
+  <p class="text-sm text-gray-600">보낸 사람: 조윤호 팀장 (포스코 IT운영팀)</p>
+
+  <div class="text-sm space-y-1">
+    <p>안녕하세요, 포스코 IT운영팀 조윤호 팀장입니다.</p>
+    <p>SAP FI 시스템 개선 프로젝트와 관련하여 아래와 같이 인력 파견을 요청드립니다.</p>
+
+    <ul class="list-disc list-inside ml-4">
+      <li><strong>고객사:</strong> 포스코</li>
+      <li><strong>요청 품목:</strong> SAP 컨설턴트 1명 (단가: 17,000,000원)</li>
+      <li><strong>납기 예정일:</strong> 2025년 7월 25일</li>
+      <li><strong>결제 조건:</strong> 45일 후 결제 (계약서 기준)</li>
+    </ul>
+
+    <p>기한 내 오더 등록 및 일정 협의 요청드립니다.<br/>감사합니다.</p>
+
+    <p class="text-sm text-gray-500">
+      - 조윤호 팀장<br/>
+      - 포스코 IT운영팀<br/>
+      - yh.cho@posco.com / 054-220-0114
+    </p>
+  </div>
+</div>`
+  },
+  {
+  title: "[판매오더 요청] PL 및 퍼블리셔 파견 요청 건",
+  data: `
+  <div class="p-4 border rounded-md shadow-sm bg-white space-y-2 mt-6">
+    <h2 class="text-lg font-semibold text-gray-800">
+      📧 [판매오더 요청] PL 및 퍼블리셔 파견 요청 건
+    </h2>
+    <p class="text-sm text-gray-600">보낸 사람: 이수진 팀장 (네이버 서비스개발실)</p>
+
+    <div class="text-sm space-y-1">
+      <p>안녕하세요, 네이버 서비스개발실 이수진 팀장입니다.</p>
+      <p>금번 웹 서비스 고도화 프로젝트에 아래 인력의 파견을 요청드립니다.</p>
+
+      <ul class="list-disc list-inside ml-4">
+        <li><strong>고객사:</strong> 네이버</li>
+        <li><strong>요청 품목:</strong>
+          <ul class="list-disc list-inside ml-6">
+            <li>PL(Project Leader) 1명 (단가: 13,000,000원)</li>
+            <li>웹 퍼블리셔 1명 (단가: 8,800,000원)</li>
+          </ul>
+        </li>
+        <li><strong>납기 예정일:</strong> 2025년 8월 20일</li>
+        <li><strong>결제 조건:</strong> 납품 후 30일</li>
+      </ul>
+
+      <p>위 조건으로 판매 오더 등록 요청드립니다.<br/>감사합니다.</p>
+
+      <p class="text-sm text-gray-500">
+        - 이수진 팀장<br/>
+        - 네이버 서비스개발실<br/>
+        - sj.lee@navercorp.com / 031-784-1221
+      </p>
+    </div>
+  </div>
+  `
+},
+{
+  title: "[판매오더 요청] 프로젝트 지원을 위한 복수 품목 요청",
+  data: `
+  <div class="p-4 border rounded-md shadow-sm bg-white space-y-2 mt-6">
+    <h2 class="text-lg font-semibold text-gray-800">
+      🛠️ [판매오더 요청] 프로젝트 지원을 위한 복수 품목 요청
+    </h2>
+    <p class="text-sm text-gray-600">보낸 사람: 이지윤 실장 (현대오토에버 DX전략실)</p>
+
+    <div class="text-sm space-y-1">
+      <p>안녕하세요. 현대오토에버 DX전략실 이지윤입니다.</p>
+      <p>아래와 같이 여러 품목에 대해 주문을 요청드리오니 확인 후 오더 등록 부탁드립니다.</p>
+
+      <ul class="list-disc list-inside ml-4 space-y-1">
+        <li><strong>고객사:</strong> 현대오토에버</li>
+        <li><strong>요청 품목:</strong>
+          <ul class="list-disc list-inside ml-6">
+            <li>Java 개발자 2명 (단가: 11,000,000원)</li>
+            <li>디자이너 1명 (단가: 9,500,000원)</li>
+            <li>PM(Project Manager) 1명 (단가: 13,800,000원)</li>
+          </ul>
+        </li>
+        <li><strong>납기 예정일:</strong> 2025년 8월 30일</li>
+        <li><strong>결제 조건:</strong> 60일 후 결제</li>
+      </ul>
+
+      <p>프로젝트 일정이 촉박하여 조속한 등록 부탁드립니다.<br/>감사합니다.</p>
+
+      <p class="text-sm text-gray-500">
+        - 이지윤 실장<br/>
+        - 현대오토에버 DX전략실<br/>
+        - jiyoon.lee@autoever.com / 02-456-7890
+      </p>
+    </div>
+  </div>
+  `
+},
+{
+  title: "[판매오더 요청] 2개 프로젝트 인력 요청 건",
+  data: `
+  <div class="p-4 border rounded-md shadow-sm bg-white space-y-2 mt-6">
+    <h2 class="text-lg font-semibold text-gray-800">
+      📌 [판매오더 요청] 2개 프로젝트 인력 요청 건
+    </h2>
+    <p class="text-sm text-gray-600">보낸 사람: 김보영 팀장 (SK C&C Cloud서비스팀)</p>
+
+    <div class="text-sm space-y-1">
+      <p>안녕하세요. SK C&C 김보영입니다.</p>
+      <p>아래 두 개 프로젝트에 대한 인력 요청으로 판매 오더 등록 요청드립니다.</p>
+
+      <h3 class="font-semibold text-gray-700 mt-4">[1차 프로젝트: 클라우드 포탈 고도화]</h3>
+      <ul class="list-disc list-inside ml-6">
+        <li>고객사: SK C&C</li>
+        <li>요청 품목:
+          <ul class="list-disc list-inside ml-6">
+            <li>Vue.js 개발자 1명 (단가: 10,800,000원)</li>
+            <li>퍼블리셔 1명 (단가: 8,000,000원)</li>
+          </ul>
+        </li>
+        <li>납기 예정일: 2025년 8월 25일</li>
+        <li>결제 조건: 30D</li>
+      </ul>
+
+      <h3 class="font-semibold text-gray-700 mt-4">[2차 프로젝트: 보안 솔루션 이관]</h3>
+      <ul class="list-disc list-inside ml-6">
+        <li>고객사: SK C&C</li>
+        <li>요청 품목:
+          <ul class="list-disc list-inside ml-6">
+            <li>PM 1명 (단가: 13,500,000원)</li>
+            <li>보안 컨설턴트 1명 (단가: 12,500,000원)</li>
+          </ul>
+        </li>
+        <li>납기 예정일: 2025년 9월 1일</li>
+        <li>결제 조건: 45D</li>
+      </ul>
+
+      <p>각 프로젝트 별로 오더를 나누어 등록 부탁드립니다.<br/>감사합니다.</p>
+
+      <p class="text-sm text-gray-500">
+        - 김보영 팀장<br/>
+        - SK C&C Cloud서비스팀<br/>
+        - bykim@skcc.com / 02-123-4567
+      </p>
+    </div>
+  </div>
+  `
+}
+]
+
+// 이메일을 선택해서 채팅에 전송하는 함수
+const sendSelectedMailToChat = () => {
+  if (selectedMailIndex.value !== null) {
+    const parser = new DOMParser();
+    const htmlDoc = parser.parseFromString(mailList[selectedMailIndex.value].data, 'text/html');
+    aiText.value = htmlDoc.body.textContent?.trim() || '';
+    aiText.value += "\n 위 메일 기준으로 판매오더를 만들어줘. "
+    send_chat();
+    mailModalVisible.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -905,3 +1237,4 @@ watch(aiText, () => {
 }
 
 </style>
+
