@@ -1112,7 +1112,7 @@ function onDragStart(e, id) {
 }
 
 function onDrop(e, toStatus) {
-  const work = works.value.find((c) => c.id === draggedId);
+  const work = works.find((c) => c.id === draggedId);
   if (work) work.status = toStatus;
   draggedId = null;
 }
