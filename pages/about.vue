@@ -173,12 +173,12 @@
         class="mt-3 w-full resize-none rounded-lg bg-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none"
         @input="autoResize" 
         placeholder="AI에게 물어보세요..."
-        @keydown.enter.exact="submitAI"
+        @keydown.enter.exact="submitAI('')"
         @keydown.shift.enter.stop
         :style="{ 'max-height': textareaMaxHeight + 'px' }" 
         ></textarea>
       <!-- 보내기 버튼 (아이콘) -->
-      <button @click="submitAI"
+      <button @click="submitAI('')"
         class="absolute bottom-15 right-8 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-label="보내기">
@@ -222,7 +222,6 @@ import { aboutScenarios, aboutUpdateScenarios } from '~/utils/prompts/about_sece
 
 const workStore = useWorkStore()
 const works = workStore.works
-const filterUserName = '나웅진';
 const message = useMessage()
 const submitToLeader = ref(false);
 
@@ -268,6 +267,8 @@ onBeforeUnmount(() => {
 const textareaMaxHeight = 100;
 const aiText = ref("")
 const loading = ref(false);
+const useUserFillter = ref("");
+
 const today = new Date().toISOString().split('T')[0]; // "2025-06-26"
 
 // 오늘 날짜 기준
@@ -330,8 +331,6 @@ function extractSummaryFromHTML(html) {
 }
 
 
-
-
 // 로딩바 
 let progressState = 0;
 let progressInterval = null;
@@ -362,12 +361,14 @@ const stopProgressAnimation = (contentEle) => {
 };
 
 /** 제출 처리 **/
-async function submitAI( val) {
+async function submitAI(val) {
+  console.log("val : " , val);
+  // 입력창 텍스트입력을 통해 AI 사용 시 
   if(val !='default' && val != 'all'){
     if (!aiText.value.trim() || loading.value) return;
   }
 
-  if(aiText.value.indexOf('수정') != -1 || aiText.value.indexOf('변경') != -1){ 
+  if(val == ''){ 
       if(!checkedValue.value.trim()){
          alert("수정할 주간보고를 선택해주세요 ");
          return;
@@ -391,38 +392,36 @@ async function submitAI( val) {
           textContent = editorNext.getHTML();
           beforeWeek  = nextWeekStart; afterWeek = nextWeekEnd;
       }
-     await callBedRockByObject(setFillterWorks(beforeWeek, afterWeek), aboutUpdateScenarios, editor, aiText.value, extractSummaryFromHTML(textContent));
-     
+      await callBedRockByObject(setFillterWorks(beforeWeek, afterWeek, val), aboutUpdateScenarios, editor, aiText.value, extractSummaryFromHTML(textContent));
   }else{
-      let request = '금주 주간보고 작성해줘';
-      // 금주 주간보고 업무 요청
-      await  callBedRockByObject(setFillterWorks(thisWeekStart, thisWeekEnd), aboutScenarios, editorThis, request, '');
-      // if(val =='default'){
-      //    request = '금주 주간보고 작성해줘';
-      // }else if(val == 'all'){
-      //    request = '주간보고 취합해줘 작성해줘';
-      // }
+      useUserFillter.value = val; // 기존에 검새하던 기준 저장용
 
+      const test = setFillterWorks(thisWeekStart, thisWeekEnd, val);
+      // 금주 주간보고 업무 요청
+      await  callBedRockByObject(test, aboutScenarios, editorThis, '금주 주간보고 작성해줘', '');
       // 차주 주간보고 업무 요청
-      request = '차주 주간보고 작성해줘';
-      await  callBedRockByObject(setFillterWorks(nextWeekStart, nextWeekEnd), aboutScenarios, editorNext, request, '');
+      await  callBedRockByObject(setFillterWorks(nextWeekStart, nextWeekEnd, val), aboutScenarios, editorNext, '차주 주간보고 작성해줘', '');
   }
 
 
   // 데이터(works) 필터 처리 함수
   function setFillterWorks(startWeek, endWeek){
+    const isUserFilter = useUserFillter.value == 'default' ? true : false;
+    console.log("useUserFillter.value  : " , isUserFilter ? "특정 사용자 주간보고" : "전체 주간보고" );
+    const filterUserName = '나웅진';
     return works
-            .filter(work => 
-                      (
-                      isWithin(work.startDate, startWeek, endWeek)       
-                        || 
-                      isWithin(work.endDate, startWeek, endWeek)
-                        )&&
-                        work.users?.some(user => user.includes(filterUserName))
-            )
+            .filter(work => {
+              const inRange = isWithin(work.startDate, startWeek, endWeek) || isWithin(work.endDate, startWeek, endWeek);
+              const includesUser = work.users?.some(user => user.includes(filterUserName));
+              return inRange && (
+                isUserFilter 
+                  ? includesUser       // '나웅진' 포함된 항목만
+                  : !includesUser      // '나웅진'이 없는 항목만
+              );
+            })
             .map((work, idx) => {
             const textContent = work.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-            return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent} 진행률: ${work.progress}% ) 키: ${work.id}`;
+            return `${idx + 1}. [${work.statusName}] ${work.type} - ${work.title} (기간: ${work.startDate} ~ ${work.endDate})\n${textContent}  진행률: ${work.progress}% ) \n담당자: ${work.users}`;
           })
           .join("\n\n");
   }
