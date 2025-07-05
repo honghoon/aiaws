@@ -18,13 +18,13 @@
           <n-date-picker v-model:value="range" type="daterange" clearable />
         </div>
         <div class="flex pb-3 justify-end gap-3 items-center">
-          <n-button strong secondary round type="primary" @click="showFileUploadModal = true">데이터 불러오기</n-button>
+          <n-button strong secondary round type="primary" @click="showFileUploadModal = true">메일 불러오기</n-button>
           <FileUploadModal
             :show="showFileUploadModal"
             @close="showFileUploadModal = false"
             @fileUploaded="handleFileUploaded"
           />
-          <n-button strong secondary round type="primary" @click="helpRegWork" :loading="loading">HELP(ITSM)</n-button>
+          <n-button strong secondary round type="primary" @click="helpRegWork" :loading="helpLoading">HELP(ITSM)</n-button>
           <n-button strong secondary round type="tertiary">등록</n-button>
           <n-button strong secondary round type="info"> 조회 </n-button>
         </div>
@@ -159,12 +159,6 @@
                             <div class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
                               {{ ans.content }}
                             </div>
-
-                            <div class="mt-3 text-right">
-                              <n-button size="small" ghost type="primary" @click="openAnsSelectItem(ans.work.id)">
-                                상세보기
-                              </n-button>
-                            </div>
                           </div>
                         </div>
                         <div v-else>
@@ -265,24 +259,21 @@
             ></textarea>
 
             <!-- 보내기 버튼 (아이콘) -->
-            <button
+            <n-button
               @click="submitAI"
-              class="absolute bottom-6 right-2 flex items-center justify-center w-6 h-6 bg-gray-600 text-white rounded-full hover:bg-blue-700"
+              strong
+              secondary
+              type="success"
+              :loading="loading"
+              circle
+              class="!absolute !bottom-[17px] right-3"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                viewBox="0 0 24 24"
-                aria-label="보내기"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </button>
+              <template #icon>
+                <n-icon :size="26">
+                  <ArrowUpCircle />
+                </n-icon>
+              </template>
+            </n-button>
           </div>
         </div>
         <div
@@ -326,7 +317,7 @@
               class="flex flex-col h-[800px] bg-slate-100/50 rounded-md text-sm text-slate-600 font-normal p-3"
             >
               <div
-                ref="resultBox"
+                ref="resultBox2"
                 class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto"
               >
                 <div
@@ -555,7 +546,7 @@
 import { kanbanScenarios, todayWorkScnarios, weekWorkScnarios, deptWorkScnarios, helpRegScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
 
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { OpenOutline } from "@vicons/ionicons5";
+import { Apps, OpenOutline,  ArrowUpCircle } from "@vicons/ionicons5";
 import { Editor, EditorContent } from "@tiptap/vue-3";
 
 import StarterKit from "@tiptap/starter-kit";
@@ -600,12 +591,14 @@ const textareaMaxHeight = 200; // 약 3줄 정도 최대 높이(px)
 const aiResult = ref([]);
 const filteredAiResult = ref([]);
 const loading = ref(false);
+const helpLoading = ref(false);
 const showMenu = ref(false);
 const showModal = ref(false);
 const searchUser = ref("");
 const selectedItem = ref(null);
 const updateMode = ref(false);
 const resultBox = ref(null);
+const resultBox2 = ref(null);
 const themeVars = useThemeVars();
 const sessionUser = ref({
   id: 1,
@@ -798,53 +791,29 @@ async function submitAI() {
 
     chatResult = "";
 
-    while (true) { 
-      stopProgressAnimation(aiResult); // 프로그레스 중지
-      const { done, value } = await reader.read(); 
-      if (done) break; 
+    while (true) {
+      stopProgressAnimation(aiResult);
+      const { done, value } = await reader.read();
+      if (done) break;
+      console.log(decoder.decode(value));
 
-      const chunk = decoder.decode(value); 
-      chatResult += chunk; 
+      // aiResult.value += decoder.decode(value);
 
-      if (!insideJsonBlock) { 
-        const jsonStartIndex = chatResult.indexOf("<jsonData>"); 
-        if (jsonStartIndex !== -1) { 
-          visibleText = chatResult.substring(0, jsonStartIndex); 
-          insideJsonBlock = true;           
-        } else { 
-          visibleText = chatResult; 
-          aiResult.value[aiResult.value.length - 1].content = visibleText;
-        } 
-      } else {
-        const jsonEndIndex = chatResult.indexOf("</jsonData>"); 
-        if (jsonEndIndex !== -1) {
-          insideJsonBlock = false;          
-          aiResult.value[aiResult.value.length - 1].content = visibleText;
-        }
+      chatResult += decoder.decode(value);
+
+      aiResult.value[aiResult.value.length - 1].content = chatResult;
+      aiResult.value[aiResult.value.length - 1] = JSON.parse(
+        JSON.stringify(aiResult.value[aiResult.value.length - 1])
+      );
+
+      await nextTick();
+      if (resultBox.value) {
+        resultBox.value.scrollTop = resultBox.value.scrollHeight;
       }
-
-      await nextTick(); 
-      if (resultBox.value) 
-        resultBox.value.scrollTop = resultBox.value.scrollHeight; 
     }
-
-    const jsonMatch = chatResult.match(/<jsonData>\s*([\s\S]*?)\s*<\/jsonData>/);
-
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[1]);
-        aiResult.value[aiResult.value.length - 1].answers = parsed.answers; 
-      } catch (e) {
-        aiResult.value[aiResult.value.length - 1].answers = "데이터를 찾지 못했습니다.";
-      }
-    } else {
-      aiResult.value[aiResult.value.length - 1].answers = "데이터를 찾지 못했습니다.";
-    }    
 
     aiText.value = "";
   } catch (e) {
-    submitControll = true;
-    stopProgressAnimation(aiResult);
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
     submitControll = true;
@@ -858,7 +827,7 @@ async function submitAI() {
 async function helpRegWork() {
   if(submitControll === false) return;
 
-  loading.value = true;
+  helpLoading.value = true;
   const id = works.length+1;
   let content;
   try {
@@ -899,12 +868,10 @@ async function helpRegWork() {
     works.push(...resultArray); // 기존 업무에 덧붙이기
 
   } catch (e) {
-    loading.value = false;
-    submitControll = true;
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
     submitControll = true;
-    loading.value = false;
+    helpLoading.value = false;
   }
 }
 
@@ -1043,18 +1010,18 @@ async function summaryCallAI(type) {
 
       filteredAiResult.value[filteredAiResult.value.length - 1].content = chatResult;
       filteredAiResult.value[filteredAiResult.value.length - 1] = JSON.parse(JSON.stringify(filteredAiResult.value[filteredAiResult.value.length - 1]));
+      summaryCallCnt = summaryCallCnt+1
 
       await nextTick();
-      summaryCallCnt = summaryCallCnt+1
+      if (resultBox2.value) {
+        resultBox2.value.scrollTop = resultBox2.value.scrollHeight;
+      }            
     }
   } catch (e) {
-    submitControll = true;
-    summaryCallCnt = 0;
-    stopProgressAnimation(filteredAiResult);
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
     submitControll = true;
-    progressText.value = "";
+    summaryCallCnt = 0;
     stopProgressAnimation(filteredAiResult);
     loading.value = false;
   }

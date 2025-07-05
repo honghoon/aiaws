@@ -3,24 +3,15 @@ export const kanbanScenarios = `
     사용자의 요청에 따라 업무 업무 목록을 분석해서, 질문에 맞는 항목만 골라 아래 형식대로 JSON 형식으로 응답해줘.
 
     📌 응답 형식:
-    "[statusName] type - title 
-        - 기간: startDate ~ endDate      
-        - 담당자: users
-        - 진행률: progress%"</br>        
-    <jsonData>
-        {
-        "answers": [
-            {
-            "content": "[statusName] type - title \\n- 기간: startDate ~ endDate\\n- 진행률: progress%",
-            "work": { 업무 객체 그대로 }
-            },
-        ]
-        }
-    </jsonData>
+    "• [statusName] type - title
+      담당자: users
+      📅 기간: startDate ~ endDate      
+      진행상태: statusName(progress%)      
+      - 업무내용: content
+      - 이슈사항: content의 이슈 내용
     
     📌출력순서
     1. 사람이 읽을 수 있는 텍스트 목록을 먼저 출력 (content만 표시)
-    2. 그 다음 <jsonData> 태그로 감싸진 JSON 응답을 출력
 
     📌 필수 출력 규칙:
     - HTML 태그나 버튼 코드는 절대 포함하지 말 것
@@ -28,41 +19,28 @@ export const kanbanScenarios = `
     - work는 사용자가 선택한 항목을 다시 불러오기 위해 전체 업무 객체 그대로 포함할 것
     - content는 사람이 읽기 쉬운 텍스트만 포함할 것
     - 답변의 순서는 종료일이 가장 빠른 업무가 가장 먼저 나오도록 정렬할 것
+    - content에서 이슈사항, 특이사항은 따로 분류하여 표기하며 content는 모든내용이 아닌 요약된 내용을 출력
+    - 이슈사항이 없는 경우 표시하지 않을거야.
+    - 답변의 헤드라인은 작성해줄 필요 없어 예를들어 ## 특이사항 업무 이런식으로
 
     📌 날짜 조건 처리 방식:
     - 오늘 날짜는 반드시 "2025-06-24"로 간주할 것
     - 사용자가 "마감일이 10일 이내" 같은 요청을 하면, endDate 기준으로 오늘과의 차이를 계산해 조건에 맞는 업무만 포함할 것
     - 사용자가 "시작 날짜가 6월 1일 이후인 업무"라고 하면, startDate가 "2025-06-01"보다 **이후인 업무만** 포함할 것
     - 날짜 형식은 모두 "YYYY-MM-DD"로 되어 있음
-    - JavaScript의 new Date("YYYY-MM-DD")를 사용해 날짜 차이를 계산한다고 가정하고 비교할 것
+    - JavaScript의 new Date("YYYY-MM-DD")를 사용해 날짜 차이를 계산한다고 가정하고 비교할 것    
 
     📌 진행률 관련 처리:
     - 사용자가 진행률을 기준으로 질문할 경우, 조건에 맞지 않는 진행률(예: 100%)인 항목은 제외할 것
     - 단, 진행률 조건이 없는 질문에는 모두 포함 가능
 
-    📌 JSON 작성 시 주의사항:
-    - 모든 문자열은 JSON 규격에 맞게 이스케이프 처리할 것 (예: 큰따옴표, 백틱 등)
-    - description, title 등 문자열 안에 백틱 또는 큰따옴표(")가 있다면 반드시 \\ 또는 제거할 것
-    - answer는 사람이 읽을 수 있도록 포맷만 적용한 plain string이어야 함
-
     📌 예시 응답:
     "[진행중] 기능개발 - 로그인 시스템 
-        - 기간: 2025-01-01 ~ 2025-01-15
+        - 📅 기간: 2025-01-01 ~ 2025-01-15
         - 담당자: 나웅진, 김수빈
-        - 진행률: 75%" </br>
-    <jsonData>
-        {
-        "answers": [
-            {
-            "content": "[진행중] 기능개발 - 로그인 시스템 \\n- 기간: 2025-01-01 ~ 2025-01-15\\n- 진행률: 75%",
-            "work": {
-                "id": 1,
-                "type": "개발"
-            }
-            }
-        ]
-        }
-    </jsonData>
+        - 진행률: 75%
+        - 업무내용: 
+        - 이슈내용:
 `
 
 export function fileUploadScnarios(id, reportsText) {
@@ -156,6 +134,7 @@ export function todayWorkScnarios(worksSummary) {
     ### 반드시 지켜야 하는 사항(절대 지켜야하는 필수 사항)
     - 사용자가 질문한 user가 users에 속한 업무만 조회
     - 업무 상태가 완료인 업무는 제외(status != 4)
+    - 응답결과에 마크다운 표시는 제거
 
     ### 날짜 처리
     - 오늘 날짜(today)를 기준으로 판단
@@ -300,6 +279,7 @@ export function weekWorkScnarios(worksSummary) {
     - 불필요한 공백과 줄바꿈 정리
     - 중요한 키워드는 굵게 표시
     - 색상이 지정된 텍스트는 ⚠️ 또는 ✨ 이모지로 강조
+    - 응답결과에 마크다운 표시는 제거
 
     ### 담당자 표시
     - 여러 담당자는 쉼표로 구분
@@ -416,6 +396,7 @@ export function deptWorkScnarios(worksSummary) {
     - 불필요한 공백과 줄바꿈 정리
     - 중요한 키워드는 굵게 표시
     - 색상이 지정된 텍스트는 ⚠️ 또는 ✨ 이모지로 강조
+    - 응답결과에 마크다운 표시는 제거
 
     ### 담당자 표시
     - 여러 담당자는 쉼표로 구분

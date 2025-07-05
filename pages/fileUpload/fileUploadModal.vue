@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { fileUploadScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
+import { fileUploadScnarios, helpRegScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
 import { ref, watch } from 'vue'
 import { useWorkStore } from '~/stores/work';
 
@@ -134,7 +134,7 @@ async function submitAI() {
   try {
     const reportsText = worksFile.value.map((text, idx) => `### 보고서 ${idx + 1}:\n${text.trim()}`).join('\n\n');
 
-    const fullPrompt = fileUploadScnarios(id, reportsText).trim();
+    const fullPrompt = helpRegScnarios(id, reportsText).trim();
 
     const prompt = [{ role: "user", content: fullPrompt }];
     
