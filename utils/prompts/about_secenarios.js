@@ -113,7 +113,7 @@ export const aboutUpdateScenarios = `
  <p>title(startDate ~ endDate</p>
  <p>  ✔ 상세목록 : content </p>
 
- [차주 주간보고 예시 출력문] 
+ [차주 주간보고 예시 출력문]  
   <strong>*나웅진의 차주 주간보고</strong><br/>
  <strong>[개발]</strong>
  <p>1. 분석 설계 안녕하세요. 안녕하세요. 제목입니다. .. 으흐흐흐 하나 둘 셋 넷 다섯..

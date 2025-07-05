@@ -369,7 +369,7 @@ async function submitAI( val) {
 
   if(aiText.value.indexOf('수정') != -1 || aiText.value.indexOf('변경') != -1){ 
       if(!checkedValue.value.trim()){
-         alert("수정할 주간보고를 선택해주세요");
+         alert("수정할 주간보고를 선택해주세요 ");
          return;
       }
       let textContent = '';
