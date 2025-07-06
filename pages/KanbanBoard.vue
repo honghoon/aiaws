@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div class="flex gap-4">
+      <div class="flex flex-row gap-4">
         <div
           v-for="column in columns"
           :key="column.value"
@@ -49,15 +49,19 @@
               >
                 {{ work.title }}
               </p>
+
               <div class="flex items-center justify-between">
-                <p class="text-sm font-normal text-slate-400">
-                  처리자: {{ work.users ? work.users.join(", ") : "없음" }}
-                </p>
-              </div>
-              <div class="flex items-center justify-between">
-                <p class="text-sm font-normal text-slate-400">
-                  기간: {{ work.startDate }} ~ {{ work.endDate }} {{ work.procName ? work.procName : "" }}
-                </p>
+                <div class="flex -space-x-2">
+                  <n-avatar
+                    v-for="(name, index) in (typeof work.users === 'string' ? work.users.split(',').map(n => n.trim()) : work.users)"
+                    :key="index"
+                    round
+                    size="tiny"
+                    :src="userAvatarMap[name] || 'https://via.placeholder.com/40'"
+                    :title="name"
+                    :style="{ zIndex: 10 - index }"
+                  />
+                </div>
                 <div class="flex gap-2 items-center">
                   <div
                     class="px-3 h-6 rounded-full text-xs font-semibold flex items-center"
@@ -83,13 +87,30 @@
                   </div>
                 </div>
               </div>
-              <n-progress
-                type="line"
-                indicator-placement="inside"
-                :color="resolveColor(work.color)"
-                :rail-color="changeColor(resolveColor(work.color), { alpha: 0.2 })"
-                :percentage="work.progress"
-              />
+
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-normal text-slate-400">
+                  기간: {{ formatDate(work.startDate) }} ~ {{ formatDate(work.endDate) }} {{ work.procName ? work.procName : "" }}
+                </p>
+                <div class="flex gap-2 items-center" v-if="work.status != 4">
+                  <!-- 알림 아이콘: 댓글이 있을 때만 표시 -->
+                  <template v-if="work.comments && work.comments.length > 0">
+                    <n-icon
+                      class="inline-flex items-center justify-center text-red-400 bg-red-100 w-6 h-6 text-base rounded-full"
+                    >
+                      <NotificationsOutline />
+                    </n-icon>
+                  </template>
+                  <n-progress
+                    type="line"
+                    indicator-placement="inside"
+                    :color="resolveColor(work.color)"
+                    :rail-color="changeColor(resolveColor(work.color), { alpha: 0.2 })"
+                    :percentage="work.progress"
+                  />
+                </div>
+              </div>
+              
             </div>
           </div>
         </div>
@@ -119,9 +140,9 @@
       <template #menu>
         <!-- 하단 중앙 고정 입력창 (아이콘 버튼 포함) -->
         <div
-          class="fixed rounded-lg bottom-0 left-1/2 -translate-x-1/2 w-250 bg-white p-4 shadow-xl flex justify-center" style="transform: translateX(-5%)"
+          class="fixed rounded-lg bottom-0 left-100 -translate-x-1/2 w-150 bg-white p-4 shadow-xl flex justify-center" style="transform: translateX(-5%)"
         >
-          <div class="relative w-250">
+          <div class="relative w-150">
             <div
               class="flex flex-col h-[400px] bg-slate-100/50 rounded-md text-sm text-slate-600 font-normal p-3"
             >
@@ -206,7 +227,7 @@
           </div>
         </div>
         <div
-          class="fixed rounded-lg bottom-0 left-2/2 -translate-x-2/2 w-100 bg-white p-4 shadow-xl flex flex-col justify-start h-[900px]"
+          class="fixed rounded-lg bottom-0 left-2/2 -translate-x-2/2 w-100 bg-white p-4 shadow-xl flex flex-col justify-start h-[calc(100vh-100px)]"
           style="transform: translateX(-20%)"
         >
           <!-- 상단 버튼 탭 (Naive UI n-button 사용) -->
@@ -243,7 +264,7 @@
           <!-- 본문 영역 (기존 내용 유지) -->
           <div class="relative w-full flex-1">
             <div
-              class="flex flex-col h-[800px] bg-slate-100/50 rounded-md text-sm text-slate-600 font-normal p-3"
+              class="flex flex-col h-[calc(100vh-200px)] bg-slate-100/50 rounded-md text-sm text-slate-600 font-normal p-3"
             >
               <div
                 ref="resultBox2"
@@ -433,6 +454,118 @@
       </n-form-item>
     </n-form>
 
+    <!-- 댓글 입력 및 목록 -->
+    <div class="mt-4">
+      <div class="flex gap-2 items-start bg-white border border-slate-200 rounded-md p-3 ">
+        <n-avatar
+          round
+          size="small"
+          src="https://randomuser.me/api/portraits/men/32.jpg"
+        />
+        <div class="flex-1 space-y-2">
+          <n-input
+            v-model:value="selectedItem.newComment"
+            type="textarea"
+            size="small"
+            placeholder="댓글을 입력하세요"
+            autosize="{ minRows: 2, maxRows: 4 }"
+            class="w-full"
+            @keydown.enter.exact.prevent="addComment(selectedItem)"
+          />
+          <div class="flex justify-between items-center">
+            <n-button
+              size="tiny"
+              dashed
+              class="!text-slate-500"
+              icon-placement="left"
+            >
+              <template #icon>
+                <n-icon><CloudUploadOutline /></n-icon>
+              </template>
+              파일 첨부
+            </n-button>
+            <n-button size="small" type="primary" @click="addComment(selectedItem)">등록</n-button>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 space-y-3" v-if="selectedItem.comments && selectedItem.comments.length">
+        <div
+          v-for="(comment, cIdx) in selectedItem.comments"
+          :key="cIdx"
+          class="flex gap-3 items-start bg-slate-50 border border-slate-200 p-3 rounded-md"
+        >
+          <n-avatar
+              round
+              size="small"
+              :src="userAvatarMap[comment.registrant]"
+            />
+          <div class="flex-1">
+            <div class="flex justify-between items-center">
+              <p class="font-semibold text-slate-700">{{ comment.author }}</p>
+              <span class="text-xs text-slate-400">{{ comment.date }}</span>
+            </div>
+            <p class="text-sm text-slate-600 mt-1 whitespace-pre-line">
+              {{ comment.content }}
+            </p>
+            <!-- 대댓글 입력 -->
+            <div class="mt-2 ml-10">
+              <div class="flex gap-2 items-start bg-white p-3 rounded-md">
+                <n-avatar
+                  round
+                  size="small"
+                  src="https://randomuser.me/api/portraits/men/32.jpg"
+                />
+                <n-input
+                  v-model:value="comment.newReply"
+                  type="textarea"
+                  size="tiny"
+                  placeholder="답글을 입력하세요"
+                  :autosize="{ minRows: 1, maxRows: 3 }"
+                  class="flex-1"
+                  @keydown.enter.exact.prevent="addReply(comment)"
+                />
+                <div class="flex flex-col gap-1">
+                  <n-button
+                    size="tiny"
+                    secondary
+                    type="default"
+                    class="!border-slate-300"
+                  >
+                    📎 첨부
+                  </n-button>
+                  <n-button size="tiny" type="primary" @click="addReply(comment)">등록</n-button>
+                </div>
+              </div>
+
+              <!-- 대댓글 리스트 -->
+              <div class="mt-2 space-y-2" v-if="comment.replies && comment.replies.length">
+                <div
+                  v-for="(reply, rIdx) in comment.replies"
+                  :key="rIdx"
+                  class="flex gap-2 items-start text-sm text-slate-600"
+                >
+                  <n-avatar
+                    round
+                    size="tiny"
+                    :src="userAvatarMap[reply.registrant]"
+                  />
+                  <div class="bg-slate-100 px-3 py-1 rounded-md flex-1">
+                    <div class="flex justify-between items-center">
+                      <span class="font-semibold text-slate-700">{{ reply.author }}</span>
+                      <span class="text-xs text-slate-400">{{ reply.date }}</span>
+                    </div>
+                    <p class="text-sm whitespace-pre-line">{{ reply.content }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- // 대댓글 입력 및 리스트 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <template #action>
       <div class="flex p-2 gap-3 items-center justify-end">
         <n-button
@@ -473,7 +606,8 @@
 import { kanbanScenarios, todayWorkScnarios, weekWorkScnarios, deptWorkScnarios, helpRegScnarios } from '~/utils/prompts/dashBoard_scenarios.js';
 
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { Apps, OpenOutline,  ArrowUpCircle } from "@vicons/ionicons5";
+import { Apps, OpenOutline,  ArrowUpCircle ,NotificationsOutline } from "@vicons/ionicons5";
+import { CloudUploadOutline } from '@vicons/ionicons5'
 import { Editor, EditorContent } from "@tiptap/vue-3";
 
 import StarterKit from "@tiptap/starter-kit";
@@ -494,6 +628,13 @@ const allWorks = ref([...works]); // 원본 복사
 import { useHelpWorkStore } from '~/stores/helpWork';
 const helpWorkStore = useHelpWorkStore()
 const helpWorks = helpWorkStore.helpWorks
+
+const userAvatarMap = {
+  "나웅진": "https://randomuser.me/api/portraits/men/32.jpg",
+  "김지민": "https://randomuser.me/api/portraits/men/45.jpg",
+  "김수빈": "https://randomuser.me/api/portraits/men/64.jpg",
+  "김영희": "https://randomuser.me/api/portraits/men/78.jpg"
+}
 
 // Ionicons
 import { IonIcon } from "@ionic/vue";
@@ -1090,7 +1231,41 @@ watch(showMenu, (val) => {
   }
 })
 
+// 날짜를 mm.dd 형식으로 변환하는 함수
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr)
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${mm}.${dd}`
+}
 
+const addComment = (work) => {
+  if (!work.newComment || !work.newComment.trim()) return;
+  if (!work.comments) work.comments = [];
+
+  work.comments.push({
+    author: sessionUser.value.name,
+    date: new Date().toISOString().split('T')[0],
+    content: work.newComment.trim(),
+    registrant: "나웅진" // 등록자 
+  });
+
+  work.newComment = "";
+};
+
+const addReply = (comment) => {
+  if (!comment.newReply || !comment.newReply.trim()) return;
+  if (!comment.replies) comment.replies = [];
+
+  comment.replies.push({
+    author: sessionUser.value.name,
+    date: new Date().toISOString().split('T')[0],
+    content: comment.newReply.trim(),
+    registrant: "나웅진" // 등록자 추
+  });
+
+  comment.newReply = "";
+};
 </script>
 
 <style>
@@ -1104,4 +1279,5 @@ watch(showMenu, (val) => {
   outline: none;
 }
 </style>
+
 
