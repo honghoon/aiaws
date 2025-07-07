@@ -427,8 +427,7 @@ async function submitAI(val) {
     const isUserFilter = useUserFillter.value == 'default' ? true : false;
     console.log("useUserFillter.value  : " , isUserFilter ? "특정 사용자 주간보고" : "전체 주간보고" );
     const filterUserName = '나웅진';
-    return works
-            .filter(work => {
+    return works.value.filter(work => {
               const inRange = isWithin(work.startDate, startWeek, endWeek) || isWithin(work.endDate, startWeek, endWeek);
               const includesUser = work.users?.some(user => user.includes(filterUserName));
               return inRange && (
