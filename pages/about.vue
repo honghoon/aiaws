@@ -29,11 +29,11 @@
           @positive-click="submitCallback"
         />
       </div>
-      <div class="min-h-[calc(100vh-280px)] flex gap-3">
+      <div class="max-h-[calc(100vh-320px)] flex gap-3">
         <!-- 전주 -->
        <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
         <h2 class="text-sm font-semibold mb-2">전주 주간보고</h2>
-        <div class="flex-1 overflow-y-auto pr-2">
+        <div class="flex-1 overflow-y-auto pr-2  max-h-[calc(100vh-350px)]" >
           <n-card
             v-for=" (work, index) in getWorksByStatus()"
             :key="work.id"
@@ -67,7 +67,7 @@
         <!-- 금주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
           <h2 class="text-sm font-semibold mb-2">금주 주간보고</h2>
-          <div class="sticky top-0 z-10 flex gap-2 bg-white py-2 px-4 border-b border-gray-200">
+          <div class="sticky top-0 z-10 flex gap-2 bg-white py-2 px-4 border-b border-gray-200 max-h-[calc(100vh-350px)]">
             <!-- 굵게: textOutline -->
             <n-button quaternary size="small" @click="editorThis.chain().focus().toggleBold().run()">
               <IonIcon :icon="textOutline" class="text-xl" />
@@ -100,7 +100,7 @@
         <!-- 차주 -->
         <div class="flex-1 flex flex-col bg-gray-100 shadow-sm p-3 rounded-md">
           <h2 class="text-sm font-semibold mb-2">차주 주간보고</h2>
-          <div class="sticky top-0 z-10 flex gap-2 bg-white py-2 px-4 border-b border-gray-200">
+          <div class="sticky top-0 z-10 flex gap-2 bg-white py-2 px-4 border-b border-gray-200 max-h-[calc(100vh-350px)]">
             <!-- 굵게: textOutline -->
             <n-button quaternary size="small" @click="editorNext.chain().focus().toggleBold().run()">
               <IonIcon :icon="textOutline" class="text-xl" />
