@@ -460,7 +460,7 @@
         <n-avatar
           round
           size="small"
-          src="https://randomuser.me/api/portraits/men/32.jpg"
+          :src="wj77106684"
         />
         <div class="flex-1 space-y-2">
           <n-input
@@ -513,7 +513,7 @@
                 <n-avatar
                   round
                   size="small"
-                  src="https://randomuser.me/api/portraits/men/32.jpg"
+                  :src="wj77106684"
                 />
                 <n-input
                   v-model:value="comment.newReply"
@@ -619,6 +619,10 @@ import Highlight from "@tiptap/extension-highlight";
 import Underline from "@tiptap/extension-underline";
 import FileUploadModal from './fileUpload/fileUploadModal.vue';
 import Link from "@tiptap/extension-link";
+import wj77102147 from '@/assets/profileImage/77102147.jpg';
+import wj77106684 from '@/assets/profileImage/77106684.jpg';
+import wj77107655 from '@/assets/profileImage/77107655.jpg';
+import wj77106311 from '@/assets/profileImage/77106311.jpg';
 
 import { useWorkStore } from '~/stores/work';
 const workStore = useWorkStore()
@@ -630,10 +634,10 @@ const helpWorkStore = useHelpWorkStore()
 const helpWorks = helpWorkStore.helpWorks
 
 const userAvatarMap = {
-  "나웅진": "https://randomuser.me/api/portraits/men/32.jpg",
-  "김지민": "https://randomuser.me/api/portraits/men/45.jpg",
-  "김수빈": "https://randomuser.me/api/portraits/men/64.jpg",
-  "김영희": "https://randomuser.me/api/portraits/men/78.jpg"
+  "나웅진": `${wj77106684}`,
+  "김지민": `${wj77102147}`,
+  "김수빈": `${wj77106311}`,
+  "김영희": `${wj77107655}`,
 }
 
 // Ionicons
