@@ -389,6 +389,7 @@
       </template>
     </n-float-button>
   </div>
+
   <!-- 등록 / 수정 팝업 모달 -->
   <n-modal
     v-model:show="showModal"
@@ -526,7 +527,8 @@
           </div>
           <editor-content
             :editor="editor"
-            class="h-[calc(100vh-550px)] overflow-y-auto flex max-h-full p-3 rounded bg-white"
+            @click="()=>{editor.commands.focus('end')}"
+            class="h-[calc(100vh-850px)] overflow-y-auto flex max-h-full p-3 rounded bg-white"
           />
         </div>
       </n-form-item>
@@ -1281,7 +1283,8 @@ function registerwork() {
   showModal.value = true;
   selectedItem.value = createItem.value;
   updateMode.value = true; // 새로 등록할 때는 수정 모드로 전환
-  editor.commands.setContent("1.");
+  editor.commands.setContent("<p><br></p>");
+  editor.commands.focus('end')
 };
 
 function regWork(){
