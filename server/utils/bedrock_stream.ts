@@ -90,7 +90,7 @@ function sleep(ms: number) {
 }
 
 export async function streamFallbackMessageJump(writer: ServerResponse, message: string) {
-  const maxChunkLength = 300;
+  const maxChunkLength = 10;
 
   // 1. \n 기준으로 문단 단위로 쪼갬
   const paragraphs = message.split('\n');
