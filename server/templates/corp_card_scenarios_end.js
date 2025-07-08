@@ -31,7 +31,16 @@ export const corp_card_scenarios_end = `
 { name: '영업활동비(기타)', code: '50000004' },
 { name: '교육훈련비', code: '50000004' },
 { name: '광고선전비', code: '50000005' },
-{ name: '프로젝트영업비', code: '50000006' }
+{ name: '프로젝트비용', code: '50000006' }
+
+- costCenter : '코스트센터' 로 다음과 같은 code 값으로 구성
+{ name: '프로젝트', code: '10000' },
+{ name: '클라우드서비스팀', code: '12100' }
+
+- wbsElement : 'WBS 항목' 으로 다음 과 같은 code 값으로 구성
+{ name: '바디프렌드 ERP 프로젝트', code: 'W-05-54386' },
+{ name: '트렉스타 그룹웨어 프로젝트', code: 'W-03-48580' },
+{ name: '웅진식품 NCP 프로젝트', code: 'W-03-48581' }
 ---
  
 [이전 대화 이력]
@@ -69,5 +78,7 @@ export const corp_card_scenarios_end = `
 - 쿼리 결과에서 "glAccount", "description" 이 빈값인 경우 "merchantName" 값을 보고 유추하여 적절한 값을 넣어주고 해당 값으로 유추한 사유를 넣어서 답변해주세요.
 - 예: "merchantName" 값이 "버거킹 대전역점" 인 경우 서울,종로구 지역에서 사용한 내역이 아니므로 타지역에서 사용한 것으로 판단하여 
   "glAccount" 는 "50000006" 로 설정하고 "description" 은 "고객사 출장으로 인한 점심식대" 와 같은 내용으로 설정
+- 쿼리 결과에서 "merchantName" 가 서울이 아닌경우 'wbsElement' 값을 다음 맵핑 값을 보고 유추하여 적절한 값을 넣어주고 해당 값으로 유추한 사유를 넣어서 답변해주세요.
+  맵핑 값 : "부산,대전 - 트렉스타 - W-03-48580", "광주 - 웅진식품 - W-03-48581"
 [출력 형식은 markdown 형식으로 모던하게 답변하세요.]
 `

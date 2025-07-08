@@ -2,6 +2,7 @@
 import { sendClaudeResponseInvoke } from  '~/server/utils/bedrock_invoke';
 import { corp_card_scenarios_end} from '~/server/templates/corp_card_scenarios_end.js';
 import { corp_card_scenarios_reg } from '~/server/templates/corp_card_scenarios_reg.js';
+import { corp_card_scenarios_update } from '~/server/templates/corp_card_scenarios_update.js';
 
 const messgageKey = "\n--message--\n";
 const prockey = "\n--proc--\n";
@@ -27,7 +28,8 @@ export const send2Proc = async (writer, history, toMessage) => {
     let formattedResult = [];
 
     let resultDataSet = null;
-    let resultDataCount = null;
+    let resultModiyJSON = null;
+    let finalResult = null;
 
     if (queryObj.visualizationType === 'table'){
         await streamFallbackMessageJump(writer, prockey)
@@ -41,6 +43,7 @@ export const send2Proc = async (writer, history, toMessage) => {
         }
 
         resultDataSet = await db.collection('corporate_cards').find(queryObj.query).toArray();
+        console.log(resultDataSet)
 
         formattedResult = resultDataSet.map(doc => ({
         ...doc,
@@ -50,18 +53,59 @@ export const send2Proc = async (writer, history, toMessage) => {
         amount: formatAmount(doc.amount),
         taxAmount: formatAmount(doc.taxAmount),
         }));
+        
+        if (formattedResult == null || formattedResult.length == 0){
+            await streamFallbackMessageJump(writer, messgageKey)
+            await streamFallbackMessageJump(writer, '데이터가 존재하지 않습니다.\n')
+            writer.write(`event: end\ndata: [DONE]\n\n`);
+            writer.end();
+            return;
+        }
 
-        console.log(resultDataSet)
-        resultDataCount = await db.collection('corporate_cards').countDocuments(queryObj.count);
-        console.log(resultDataCount)
-    }
+        
 
-    if (formattedResult == null || formattedResult.length == 0){
-        await streamFallbackMessageJump(writer, messgageKey)
-        await streamFallbackMessageJump(writer, '데이터가 존재하지 않습니다.\n')
-        writer.write(`event: end\ndata: [DONE]\n\n`);
-        writer.end();
-        return;
+
+        // 전달된 DB 데이터를 AI 에 전달하여 자동으로 셋팅해줄 정보를 처리한다
+        try{
+            messages = corp_card_scenarios_update
+            .replace('{history}', history)
+            .replace('{toMessage}', toMessage)
+            .replace('{orignData}', JSON.stringify(resultDataSet, null, 2));
+
+            sendPrompt = [{"role": "user", "content" : messages}]
+
+            resultInvoke= await sendClaudeResponseInvoke(sendPrompt)
+            let resultDataSetModified = resultInvoke.completion;
+
+            resultDataSetModified = resultDataSetModified
+                .replace(/```json\s*/gi, '')  // 시작 태그 제거
+                .replace(/```/g, '');         // 종료 태그 제거
+
+            try{
+              resultModiyJSON = JSON.parse(resultDataSetModified)
+            }catch(e){
+              await streamFallbackMessageJump(writer, "--error--")
+              await streamFallbackMessageJump(writer, '데이터 변환에 실패하였습니다.')
+              await streamFallbackMessageJump(writer, e)
+              return
+            }
+
+            // 추출 데이터 업데이트
+            try{
+              finalResult = applyPatchToOrder(formattedResult, resultModiyJSON);
+            }catch(e){
+              await streamFallbackMessageJump(writer, "--error--")
+              await streamFallbackMessageJump(writer, '데이터 변환에 실패하였습니다.')
+              await streamFallbackMessageJump(writer, e)
+              return
+            }
+
+        }catch(e){
+          await streamFallbackMessageJump(writer, "--error--")
+          await streamFallbackMessageJump(writer, e)
+          return
+        } 
+
     }
 
     messages = corp_card_scenarios_end
@@ -69,8 +113,7 @@ export const send2Proc = async (writer, history, toMessage) => {
         .replace('{toMessage}', toMessage)
         .replace('{today}', today)
         .replace('{query}', queryText)
-        .replace('{resultCount}', resultDataCount)
-        .replace('{results}', JSON.stringify(formattedResult, null, 2));
+        .replace('{results}', JSON.stringify(finalResult, null, 2));
 
     console.log(messages)
     sendPrompt = [{"role": "user", "content" : messages}]
@@ -82,7 +125,7 @@ export const send2Proc = async (writer, history, toMessage) => {
     // 마지막 결과 Data Set JSON 반환
     let sendResponseData = {
         "type":"table_edit",
-        "data":formattedResult,
+        "data":finalResult,
         "scenrios":2,
         "columns": corporate_cardsColumns,
         "title": "법인카드 전표 상신",
@@ -93,7 +136,6 @@ export const send2Proc = async (writer, history, toMessage) => {
 
     writer.write(`event: end\ndata: [DONE]\n\n`);
     writer.end();
-    console.log(resultDataSet)
 }
 
 const corporate_cardsColumns = [
@@ -139,7 +181,8 @@ const corporate_cardsColumns = [
       { name: '프로젝트영업제안비', code: '50000003' },
       { name: '영업활동비(기타)', code: '50000004' },
       { name: '교육훈련비', code: '50000004' },
-      { name: '광고선전비', code: '50000005' }
+      { name: '광고선전비', code: '50000005' },
+      { name: '프로젝트비용', code: '50000006' }
     ]
   },
   {
@@ -150,23 +193,8 @@ const corporate_cardsColumns = [
     optionLabel: 'name',
     optionValue: 'code',
     options: [
-      { name: 'CEO', code: '10000' },
-      { name: '임원', code: '10001' },
-      { name: '전사공통', code: '10002' },
-      { name: '기획팀', code: '11000' },
-      { name: '전략팀', code: '11001' },
-      { name: '인사팀', code: '11002' },
-      { name: 'ERP1사업본부', code: '12000' },
-      { name: 'ERP2사업본부', code: '12001' },
-      { name: 'ERP3사업본부', code: '12002' },
-      { name: '모빌리티사업본부', code: '12003' },
-      { name: '클라우드사업본부', code: '12004' },
-      { name: '클라우드서비스팀', code: '12100' },
-      { name: '클라우드기술팀', code: '12101' },
-      { name: '클라우드전략고객팀', code: '12102' },
-      { name: 'MS서비스팀', code: '12103' },
-      { name: 'CIT사업본부', code: '12005' },
-      { name: 'VC사업본부', code: '12006' }
+      { name: '프로젝트', code: '10000' },
+      { name: '클라우드서비스팀', code: '12100' }
     ]
   },
   {
@@ -217,3 +245,23 @@ function formatDate(date) {
 function formatAmount(value) {
   return value.toLocaleString(); // 세 자리 콤마
 }
+
+function applyPatchToOrder(originalData, patchList) {
+  const cloned = structuredClone(originalData); // 원본 보호
+
+  for (const patch of patchList) {
+    const { index, type, key, value } = patch;
+
+    if (!key) continue;
+
+    let target = cloned;
+    // 🔁 수정
+    if (type === 'M') {
+      target[index][key] = value;
+    }
+
+  }
+
+  return cloned;
+}
+
