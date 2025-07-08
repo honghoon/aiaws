@@ -88,7 +88,8 @@ export const send6Proc = async (writer, history, toMessage) => {
       chartType: queryObj.visualization?.type || "",
       title: queryObj.visualization?.title || '',
       xField: queryObj.visualization?.xField,
-      yField: queryObj.visualization?.yField
+      yField: queryObj.visualization?.yField,
+      "visualization":queryObj.visualization
     }
   }else{
     try{
