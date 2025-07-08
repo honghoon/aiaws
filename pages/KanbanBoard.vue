@@ -266,12 +266,12 @@
             <div
               class="flex flex-col h-[calc(100vh-200px)] bg-slate-100/50 rounded-md text-sm text-slate-600 font-normal p-3"
             >
-              <div
+              <div v-if="clickedMap['today']"
                 ref="resultBox2"
                 class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto"
               >
-                <div
-                  v-for="(item, index) in filteredAiResult"
+                <div 
+                  v-for="(item, index) in filteredTodayAiResult"
                   :key="index"
                   class="flex flex-col items-start gap-3"
                 >
@@ -305,6 +305,84 @@
                   <n-skeleton height="40px" width="66%" circle />
                 </n-space>                
               </div>
+              <div v-if="clickedMap['week']"
+                ref="resultBox2"
+                class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto"
+              >
+                <div
+                  v-for="(item, index) in filteredWeekAiResult"
+                  :key="index"
+                  class="flex flex-col items-start gap-3"
+                >
+                  <div class="flex-1">
+                    <div v-if="item.contentType === 'text'">
+                      <div v-if="item.type === 'system'">
+                        <div v-if="item.answers?.length">
+                          <div
+                            v-for="(ans, i) in item.answers"
+                            :key="i"
+                            class="rounded-xl border border-slate-200 bg-gray-50 p-4 mb-3 shadow-sm"
+                          >
+                            <div class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                              {{ ans.content }}
+                            </div>
+                          </div>
+                        </div>
+                        <div v-else>
+                          <p class="text-sm text-slate-600 font-normal">
+                            {{ item.content }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <n-space vertical v-if="is_summary_end">
+                  <n-skeleton text :repeat="1" width="40%"/> 
+                  <n-skeleton text :repeat="1" width="80%" height="80px" /> 
+                  <n-skeleton text :repeat="1" width="60%"/> 
+                  <n-skeleton height="40px" width="66%" circle />
+                </n-space>                
+              </div>
+              <div v-if="clickedMap['org']"
+                ref="resultBox2"
+                class="p-4 space-y-4 w-full whitespace-pre-line break-words overflow-y-auto"
+              >
+                <div
+                  v-for="(item, index) in filteredOrgAiResult"
+                  :key="index"
+                  class="flex flex-col items-start gap-3"
+                >
+                  <div class="flex-1">
+                    <div v-if="item.contentType === 'text'">
+                      <div v-if="item.type === 'system'">
+                        <div v-if="item.answers?.length">
+                          <div
+                            v-for="(ans, i) in item.answers"
+                            :key="i"
+                            class="rounded-xl border border-slate-200 bg-gray-50 p-4 mb-3 shadow-sm"
+                          >
+                            <div class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                              {{ ans.content }}
+                            </div>
+                          </div>
+                        </div>
+                        <div v-else>
+                          <p class="text-sm text-slate-600 font-normal">
+                            {{ item.content }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <n-space vertical v-if="is_summary_end">
+                  <n-skeleton text :repeat="1" width="40%"/> 
+                  <n-skeleton text :repeat="1" width="80%" height="80px" /> 
+                  <n-skeleton text :repeat="1" width="60%"/> 
+                  <n-skeleton height="40px" width="66%" circle />
+                </n-space>                
+              </div>                            
             </div>
           </div>
         </div>
@@ -666,7 +744,11 @@ const showInput = ref(false);
 const aiText = ref("");
 const textareaMaxHeight = 200; // 약 3줄 정도 최대 높이(px)
 const aiResult = ref([]);
-const filteredAiResult = ref([]);
+//const filteredAiResult = ref([]);
+const filteredTodayAiResult = ref([]);
+const filteredWeekAiResult = ref([]);
+const filteredOrgAiResult = ref([]);
+
 const loading = ref(false);
 const helpLoading = ref(false);
 const showMenu = ref(false);
@@ -895,8 +977,7 @@ async function submitAI() {
       stopProgressAnimation(aiResult);      
       const { done, value } = await reader.read();
       if (done) break;
-      console.log(decoder.decode(value));
-
+      
       // aiResult.value += decoder.decode(value);
 
       chatResult += decoder.decode(value);
@@ -1021,21 +1102,60 @@ const getThisWeekDates = function(today = new Date()) {
 // 월요일부터 일요일까지 (한국 기준)
 const thisWeekFromMonday = getThisWeekDates(today);
 
-const clearAllAnswersContent = () => {
-  filteredAiResult.value.forEach(item => {
+const clearAllAnswersContent = (result) => {
+  result.value.forEach(item => {
     item.content = "";
   });
 };
 
+const clickedMap = reactive({
+  today: false,
+  week: false,
+  org: false
+});
+
+const calledMap = reactive({
+  today: false,
+  week: false,
+  org: false
+});
+
+const typeToKeyMap = {
+  1: "today",
+  2: "week",
+  3: "org"
+};
 
 /** 제출 처리 */
-async function summaryCallAI(type) {
-  if(submitControll == false) return;
-  clearAllAnswersContent();
+async function summaryCallAI(type) {  
+  if (submitControll === false) return;
+  
   let question = "";
   let scenario;
   let charge;
   let content;
+
+  const keys = Object.values(typeToKeyMap);
+  const activeKey = typeToKeyMap[type];
+
+  // 탭 전환 처리 (하나만 true)
+  keys.forEach(k => clickedMap[k] = false);
+  clickedMap[activeKey] = true;
+
+  // 이미 호출된 탭이면 API 호출 생략 (데이터 캐시 사용)
+  if (calledMap[activeKey] === true) {
+    return;
+  }
+
+  // === 실제 AI 호출 진행 ===
+  let filteredAiResult = {
+    today: filteredTodayAiResult,
+    week: filteredWeekAiResult,
+    org: filteredOrgAiResult
+  }[activeKey];
+
+  clearAllAnswersContent(filteredAiResult);  
+
   try {
 
     // 업무 요약 텍스트로 변환 (HTML 제거 포함)
@@ -1120,11 +1240,12 @@ async function summaryCallAI(type) {
         resultBox2.value.scrollTop = resultBox2.value.scrollHeight;
       }            
     }
+    calledMap[activeKey] = true;
   } catch (e) {
+    calledMap[activeKey] = false;
     console.error("AI 요청 중 오류 발생:", e);
   } finally {
     submitControll = true;
-    summaryCallCnt = 0;
     is_summary_end.value = false;
     stopProgressAnimation(filteredAiResult);
     loading.value = false;
@@ -1256,6 +1377,13 @@ const addComment = (work) => {
 
   work.newComment = "";
 };
+
+const currentAiResult = computed(() => {
+  if (activeTab.value === "today") return filteredTodayAiResult.value;
+  if (activeTab.value === "week") return filteredWeekAiResult.value;
+  if (activeTab.value === "org") return filteredOrgAiResult.value;
+  return [];
+});
 
 const addReply = (comment) => {
   if (!comment.newReply || !comment.newReply.trim()) return;
