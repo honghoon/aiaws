@@ -183,7 +183,7 @@
         </template>
       </n-button>
       
-      <n-popover trigger="click" :show="attachPop">
+      <n-popover trigger="click" :show="attachPop" @update:show="attachPop = $event">
         <template #trigger>
           <n-button strong secondary @click="attachPop=true" circle type="primary" class="!absolute !bottom-8 left-8">
             <template #icon>
@@ -191,7 +191,7 @@
             </template>
           </n-button>
         </template>
-        <div class="flex flex-col items-start">
+        <div class="flex flex-col items-start" >
           <n-button quaternary size="xs" @click="()=>{mailModalVisible = true; attachPop=false;}">
             + 전자메일 불러오기
           </n-button>
